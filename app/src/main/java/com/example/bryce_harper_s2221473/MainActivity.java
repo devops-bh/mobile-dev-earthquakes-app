@@ -94,13 +94,27 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
                 //
                 // Throw away the first 2 header lines before parsing
-                //
-                //
-                //
+                // ^ Does this mean we remove the XML & rss version tags, but keep everything inside the channel element including the title, link, description, language, lastbuilddate and image?
+                // are we expected to get rid of the 2 headers lines a particular way e.g. use a particular method?
+                // alternatively; am I allowed to just "ignore" the 2 header lines in the while loop?
+                Log.d("IN RL", in.readLine());// <?xml version="1.0"?>
+                // the following approach does not respect immutability (not sure if this matters)
+                in.readLine().replaceAll("<?xml version=\"1.0\"?>", "").trim(); // not sure if I need trim
+                // the following lines may be cause the app to crash
+                /*
+                in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "").trim();
+                in.readLine().replaceAll("</rss>", "").trim();
+                 */
+                // I guess for the meantime I'll just ignore the rss tag/s in during the while loop
+
+                // note: don't think its related to here, but I think the app is freezing due to the high volume of text being rendered (when scrolling)
+
                 while ((inputLine = in.readLine()) != null)
                 {
+                    // if (!inputLine.contains("rss")) {
                     result = result + inputLine;
-                    Log.e("MyTag",inputLine);
+                    //Log.e("MyTag",inputLine);
+                    Log.d("MyTag",inputLine);
 
                 }
                 in.close();

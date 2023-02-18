@@ -41,7 +41,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
 {
     private TextView rawDataDisplay;
     private Button startButton;
-    private String result; // defaults to null
+    //private String result; // defaults to null
+    private String result = "";
     private String url1="";
     private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
 
@@ -152,7 +153,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 public void run() {
                     Log.d("UI thread", "I am the UI thread");
                     rawDataDisplay.setText(result);
-                    parseData(result.replace("null","")); // the replace null is [hopefully] a quick fix
+                    // parseData(result.replace("null","")); // the replace null is [hopefully] a quick fix
+                    parseData((result));
                 }
             });
         }

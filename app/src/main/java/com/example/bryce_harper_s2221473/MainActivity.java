@@ -106,31 +106,26 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 // alternatively; am I allowed to just "ignore" the 2 header lines in the while loop?
                 //Log.d("IN RL", in.readLine());// <?xml version="1.0"?>
                 // the following approach does not respect immutability (not sure if this matters)
-                //in.readLine().replaceAll("<?xml version=\"1.0\"?>", "").trim(); // not sure if I need trim
+                // these are whats causing the XML data to have null in the string
+                // note: I removed the trim methods & the "nulls" [in the result string didn't appear]
+                // so maybe the nulls in the string were a tempoary issue from the dataset?
+                // either way it may be best to replace the "nulls" with empty strings to be on the safe side
+                in.readLine().replaceAll("<?xml version=\"1.0\"?>", "").trim(); // not sure if I need trim
                 // the following lines may be cause the app to crash
-                /*
-                in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "").trim();
-                in.readLine().replaceAll("</rss>", "").trim();
-                 */
+               in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "").trim();
+               in.readLine().replaceAll("</rss>", "").trim();
 
                 // I guess for the meantime I'll just ignore the rss tag/s in during the while loop
 
                 // note: don't think its related to here, but I think the app is freezing due to the high volume of text being rendered (when scrolling)
 
+                // I think the most sensible solution is to just not append the inputLine if it contains the RSS or root XML tags
                 while ((inputLine = in.readLine()) != null)
                 {
-                    // I think it'd be better to use the START_TAG + END_TAGS when parsing but I'm not sure if thats allowed
-                    // I think I should use an or statement rather than an && but should probably double check this later
-                    //if (!inputLine.contains("<rss version=") && !inputLine.contains("</rss>")) { // kinda wanna add a better check to ensure its a tag
-                    // if (result == null) result = inputLine;
                         result = result + inputLine; //.replace("null", "");
-                        Log.d("MyTag", " INPUT LINE IS "+inputLine);
-                        if (inputLine == null) {
-                            Log.d("MyTag", " INPUT LINE IS [exp null] "+inputLine);
-                        }
-                        // Log.d("MyTag",inputLine);
-                    //}
-                    //Log.e("MyTag",inputLine);
+                    if (inputLine.contains("null")) {
+                        Log.d("MyTag", " INPUT LINE "+inputLine);
+                    }
 
                 }
                 in.close();
@@ -151,9 +146,14 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
             MainActivity.this.runOnUiThread(new Runnable()
             {
                 public void run() {
-                    Log.d("UI thread", "I am the UI thread");
+                    if (result.contains("null")) {
+                        Log.d("MyTag", "CONTAINS NULL");
+                    }
+                    Log.d("UI thread", "I am the UI thread" );
                     rawDataDisplay.setText(result);
                     // parseData(result.replace("null","")); // the replace null is [hopefully] a quick fix
+                    // not sure why but the appended XML string appears to contain nnull
+                    // so a quick fix would simply be result.replaceAll("null", "");
                     parseData((result));
                 }
             });
@@ -179,6 +179,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 if(eventType == XmlPullParser.START_TAG) // never true
                 {
                     Log.d("MyTag", "START TAG");
+                    Log.d("MyTag", xpp.getName());
                     // Check which Tag we have
                     if (xpp.getName().equalsIgnoreCase("channel"))
                     {
@@ -186,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                         String temp = xpp.nextText();
                         String content = xpp.getText();
                         // Do something with text
-                        Log.d("MyTitle","TItle " + temp + " is "+ content);
+                        //Log.d("MyTitle","TItle " + temp + " is "+ content);
                     }
                     else
                         // Check which Tag we have

@@ -34,8 +34,54 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 
 // import gcu.mpd.bgsdatastarter.R;
+
+class Earthquake { // this may actually become an interface
+    // title & description contain more data & thus I'll need to parse them using the ";" as the separator
+    public String title;
+    public String description;
+    public String link ; // maybe make this a URL datatype
+    public String pubDate; // there a date datatype?
+    public String category;
+    public float lat;
+    public float lng;
+}
+
+
+class ContinentsManager { // do I need to inherit from iterable to enable iteration?
+    private HashMap<String, ArrayList<Earthquake>> continents;
+    /* Africa, Antarctica, Asia,
+     Oceania, Europe, North America, South America.
+   */
+    // Australasia is now called Oceania
+    public ContinentsManager() { // [refactor] should probably use .ToLowerCase() or ignoreCase to prevent case sensitivity bugs
+        this.continents = new HashMap<String, ArrayList<Earthquake>>();
+        // [refactor] use an array e.g. {"continents"}.forEach( put (...) )
+        this.continents.put("africa", new ArrayList());
+        this.continents.put("antarctica", new ArrayList());
+        this.continents.put("asia", new ArrayList());
+        this.continents.put("oceania", new ArrayList());
+        this.continents.put("europe", new ArrayList());
+        this.continents.put("north america", new ArrayList());
+        this.continents.put("south america", new ArrayList());
+    }
+
+    public void add(String continent, Earthquake earthquake) {
+        if (this.continents.get(continent) == null) {
+            this.continents.put(continent, new ArrayList<Earthquake>());
+        } else {
+            this.continents.get(continent).add(earthquake);
+        }
+    }
+
+    public ArrayList getAllEarthquakesInContinent(String continent) {
+        return this.continents.get(continent);
+    }
+}
 
 public class MainActivity extends AppCompatActivity implements OnClickListener
 {
@@ -44,8 +90,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
     //private String result; // defaults to null
     private String result = "";
     private String url1="";
-    private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
-
+    //private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
+    private String urlSource = ": http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -106,12 +152,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 // alternatively; am I allowed to just "ignore" the 2 header lines in the while loop?
                 //Log.d("IN RL", in.readLine());// <?xml version="1.0"?>
                 // the following approach does not respect immutability (not sure if this matters)
-                //in.readLine().replaceAll("<?xml version=\"1.0\"?>", "").trim(); // not sure if I need trim
-                // the following lines may be cause the app to crash
-                /*
-                in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "").trim();
-                in.readLine().replaceAll("</rss>", "").trim();
-                 */
+                // these appear to be causing the nulls
 
                 // I guess for the meantime I'll just ignore the rss tag/s in during the while loop
 
@@ -123,13 +164,11 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                     // I think I should use an or statement rather than an && but should probably double check this later
                     //if (!inputLine.contains("<rss version=") && !inputLine.contains("</rss>")) { // kinda wanna add a better check to ensure its a tag
                     // if (result == null) result = inputLine;
+                    if (!inputLine.contains("rss version") || !inputLine.contains("</rss>") || !inputLine.contains("<?xml version") || !inputLine.contains("</xml>")) {
                         result = result + inputLine; //.replace("null", "");
                         Log.d("MyTag", " INPUT LINE IS "+inputLine);
-                        if (inputLine == null) {
-                            Log.d("MyTag", " INPUT LINE IS [exp null] "+inputLine);
-                        }
                         // Log.d("MyTag",inputLine);
-                    //}
+                    }
                     //Log.e("MyTag",inputLine);
 
                 }
@@ -154,7 +193,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                     Log.d("UI thread", "I am the UI thread");
                     rawDataDisplay.setText(result);
                     // parseData(result.replace("null","")); // the replace null is [hopefully] a quick fix
-                    parseData((result));
+                    parseData(result.replaceAll("null", ""));
                 }
             });
         }
@@ -178,38 +217,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 // Found a start tag
                 if(eventType == XmlPullParser.START_TAG) // never true
                 {
-                    Log.d("MyTag", "START TAG");
-                    // Check which Tag we have
-                    if (xpp.getName().equalsIgnoreCase("channel"))
-                    {
-                        // Now just get the associated text
-                        String temp = xpp.nextText();
-                        String content = xpp.getText();
-                        // Do something with text
-                        Log.d("MyTitle","TItle " + temp + " is "+ content);
-                    }
-                    else
-                        // Check which Tag we have
-                        if (xpp.getName().equalsIgnoreCase("Description"))
-                        {
-                            // Now just get the associated text
-                            String temp = xpp.nextText();
-                            String content = xpp.getText();
-                            Log.d("MyTag","Desc " + temp + " is "+ content);
-                            // Do something with text
-                            //Log.e("MyTag","Description is " + temp);
-                        }
-                        else
-                            // Check which Tag we have
-                            if (xpp.getName().equalsIgnoreCase("link"))
-                            {
-                                // Now just get the associated text
-                                String temp = xpp.nextText();
-                                String content = xpp.getText();
-                                // Do something with text
-                                Log.d("MyTag","Link " + temp + " is "+ content);
-                            }
-                            // more fields need parsing
+
                 }
 
                 // Get the next event

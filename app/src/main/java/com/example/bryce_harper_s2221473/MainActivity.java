@@ -92,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
     private String url1="";
     //private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
     private String urlSource = ": http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
+    ContinentsManager continentsManager;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -103,6 +104,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
         startButton.setOnClickListener(this);
 
         // More Code goes here
+        continentsManager = new ContinentsManager();
     }
 
     public void onClick(View aview)
@@ -217,13 +219,43 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 // Found a start tag
                 if(eventType == XmlPullParser.START_TAG) // never true
                 {
-
+                    Earthquake quake = new Earthquake();
+                    switch (xpp.getName().toLowerCase()) {
+                        case "title":
+                            // [refactor] should probably use setters here to account for null values
+                            // may even use the builder pattern
+                            quake.title = xpp.nextText();
+                            break;
+                        case "description":
+                            quake.description = xpp.nextText();
+                            break;
+                        case "link":
+                            quake.link = xpp.nextText();
+                            break;
+                        case "pubdate":
+                            quake.pubDate = xpp.nextText();
+                            break;
+                        case "category":
+                            quake.category = xpp.nextText();
+                            break;
+                        case "lat":
+                            quake.lat = Float.parseFloat(xpp.nextText());
+                            break;
+                        case "lng":
+                            quake.lng = Float.parseFloat(xpp.nextText());
+                            break;
+                        default:
+                            break;
+                    }
                 }
 
                 // Get the next event
                 eventType = xpp.next();
 
             } // End of while
+
+            // [todo] identify continent using geolocation
+            //continentsManager.add(continentName, quake);
         }
         catch (XmlPullParserException ae1)
         {

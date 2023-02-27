@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -49,6 +50,9 @@ class Earthquake { // this may actually become an interface
     public String category;
     public float lat;
     public float lng;
+    public Earthquake() {
+
+    }
 }
 
 
@@ -75,6 +79,10 @@ class ContinentsManager { // do I need to inherit from iterable to enable iterat
             this.continents.put(continent, new ArrayList<Earthquake>());
         } else {
             this.continents.get(continent).add(earthquake);
+            // doesn't crash app
+            if (earthquake.title != null) {
+                Log.d("E T", earthquake.title);
+            }
         }
     }
 
@@ -91,7 +99,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
     private String result = "";
     private String url1="";
     //private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
-    private String urlSource = ": http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
+    private String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
     ContinentsManager continentsManager;
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -155,6 +163,10 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 //Log.d("IN RL", in.readLine());// <?xml version="1.0"?>
                 // the following approach does not respect immutability (not sure if this matters)
                 // these appear to be causing the nulls
+                in.readLine().replaceAll("<?xml version=\"1.0\"?>", "").trim(); // not sure if I need trim
+                // the following lines may be cause the app to crash
+                in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "").trim();
+                in.readLine().replaceAll("</rss>", "").trim();
 
                 // I guess for the meantime I'll just ignore the rss tag/s in during the while loop
 
@@ -166,7 +178,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                     // I think I should use an or statement rather than an && but should probably double check this later
                     //if (!inputLine.contains("<rss version=") && !inputLine.contains("</rss>")) { // kinda wanna add a better check to ensure its a tag
                     // if (result == null) result = inputLine;
-                    if (!inputLine.contains("rss version") || !inputLine.contains("</rss>") || !inputLine.contains("<?xml version") || !inputLine.contains("</xml>")) {
+                    // tags are still slipping through
+                    if (!inputLine.contains("<rss version") || !inputLine.contains("</rss>") || !inputLine.contains("<?xml version") || !inputLine.contains("</xml>")) {
                         result = result + inputLine; //.replace("null", "");
                         Log.d("MyTag", " INPUT LINE IS "+inputLine);
                         // Log.d("MyTag",inputLine);
@@ -224,7 +237,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                         case "title":
                             // [refactor] should probably use setters here to account for null values
                             // may even use the builder pattern
-                            quake.title = xpp.nextText();
+                            quake.title = xpp.nextText(); // or getText
+                            Log.d("Title", quake.title);
                             break;
                         case "description":
                             quake.description = xpp.nextText();
@@ -247,15 +261,23 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                         default:
                             break;
                     }
+                    // [todo] identify continent using geolocation
+                    //continentsManager.add(continentName, quake);
+                    continentsManager.add("asia", quake);
+                    ArrayList<Earthquake> earthquakesInAsia = continentsManager.getAllEarthquakesInContinent("asia"); //.get(0).title;
+                    for (int counter = 0; counter < earthquakesInAsia.size(); counter++) {
+                        if (earthquakesInAsia.get(counter).title == null) {
+                            //Log.d("MyTag", earthquakesInAsia.get(counter).title);
+                            System.out.println(earthquakesInAsia.get(counter).title); // null
+                        }
+                       // System.out.println(earthquakesInAsia.get(counter).title); // null
+                    }
                 }
 
                 // Get the next event
                 eventType = xpp.next();
 
             } // End of while
-
-            // [todo] identify continent using geolocation
-            //continentsManager.add(continentName, quake);
         }
         catch (XmlPullParserException ae1)
         {

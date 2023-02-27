@@ -270,7 +270,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                             //Log.d("MyTag", earthquakesInAsia.get(counter).title);
                             System.out.println(earthquakesInAsia.get(counter).title); // null
                         }
-                        // System.out.println(earthquakesInAsia.get(counter).title); // null
+                        //System.out.println(earthquakesInAsia.get(counter).title); // null
                     }
                 }
 

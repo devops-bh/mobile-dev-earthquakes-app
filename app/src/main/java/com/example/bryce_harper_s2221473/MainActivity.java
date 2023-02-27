@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -34,8 +35,61 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 
 // import gcu.mpd.bgsdatastarter.R;
+
+class Earthquake { // this may actually become an interface
+    // title & description contain more data & thus I'll need to parse them using the ";" as the separator
+    public String title;
+    public String description;
+    public String link ; // maybe make this a URL datatype
+    public String pubDate; // there a date datatype?
+    public String category;
+    public float lat;
+    public float lng;
+    public Earthquake() {
+
+    }
+}
+
+
+class ContinentsManager { // do I need to inherit from iterable to enable iteration?
+    private HashMap<String, ArrayList<Earthquake>> continents;
+    /* Africa, Antarctica, Asia,
+     Oceania, Europe, North America, South America.
+   */
+    // Australasia is now called Oceania
+    public ContinentsManager() { // [refactor] should probably use .ToLowerCase() or ignoreCase to prevent case sensitivity bugs
+        this.continents = new HashMap<String, ArrayList<Earthquake>>();
+        // [refactor] use an array e.g. {"continents"}.forEach( put (...) )
+        this.continents.put("africa", new ArrayList());
+        this.continents.put("antarctica", new ArrayList());
+        this.continents.put("asia", new ArrayList());
+        this.continents.put("oceania", new ArrayList());
+        this.continents.put("europe", new ArrayList());
+        this.continents.put("north america", new ArrayList());
+        this.continents.put("south america", new ArrayList());
+    }
+
+    public void add(String continent, Earthquake earthquake) {
+        if (this.continents.get(continent) == null) {
+            this.continents.put(continent, new ArrayList<Earthquake>());
+        } else {
+            this.continents.get(continent).add(earthquake);
+            // doesn't crash app
+            if (earthquake.title != null) {
+                Log.d("E T", earthquake.title);
+            }
+        }
+    }
+
+    public ArrayList getAllEarthquakesInContinent(String continent) {
+        return this.continents.get(continent);
+    }
+}
 
 public class MainActivity extends AppCompatActivity implements OnClickListener
 {
@@ -44,8 +98,9 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
     //private String result; // defaults to null
     private String result = "";
     private String url1="";
-    private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
-
+    //private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
+    private String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
+    ContinentsManager continentsManager;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -57,6 +112,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
         startButton.setOnClickListener(this);
 
         // More Code goes here
+        continentsManager = new ContinentsManager();
     }
 
     public void onClick(View aview)
@@ -106,26 +162,29 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 // alternatively; am I allowed to just "ignore" the 2 header lines in the while loop?
                 //Log.d("IN RL", in.readLine());// <?xml version="1.0"?>
                 // the following approach does not respect immutability (not sure if this matters)
-                // these are whats causing the XML data to have null in the string
-                // note: I removed the trim methods & the "nulls" [in the result string didn't appear]
-                // so maybe the nulls in the string were a tempoary issue from the dataset?
-                // either way it may be best to replace the "nulls" with empty strings to be on the safe side
+                // these appear to be causing the nulls
                 in.readLine().replaceAll("<?xml version=\"1.0\"?>", "").trim(); // not sure if I need trim
                 // the following lines may be cause the app to crash
-               in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "").trim();
-               in.readLine().replaceAll("</rss>", "").trim();
+                in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "").trim();
+                in.readLine().replaceAll("</rss>", "").trim();
 
                 // I guess for the meantime I'll just ignore the rss tag/s in during the while loop
 
                 // note: don't think its related to here, but I think the app is freezing due to the high volume of text being rendered (when scrolling)
 
-                // I think the most sensible solution is to just not append the inputLine if it contains the RSS or root XML tags
                 while ((inputLine = in.readLine()) != null)
                 {
+                    // I think it'd be better to use the START_TAG + END_TAGS when parsing but I'm not sure if thats allowed
+                    // I think I should use an or statement rather than an && but should probably double check this later
+                    //if (!inputLine.contains("<rss version=") && !inputLine.contains("</rss>")) { // kinda wanna add a better check to ensure its a tag
+                    // if (result == null) result = inputLine;
+                    // tags are still slipping through
+                    if (!inputLine.contains("<rss version") || !inputLine.contains("</rss>") || !inputLine.contains("<?xml version") || !inputLine.contains("</xml>")) {
                         result = result + inputLine; //.replace("null", "");
-                    if (inputLine.contains("null")) {
-                        Log.d("MyTag", " INPUT LINE "+inputLine);
+                        Log.d("MyTag", " INPUT LINE IS "+inputLine);
+                        // Log.d("MyTag",inputLine);
                     }
+                    //Log.e("MyTag",inputLine);
 
                 }
                 in.close();
@@ -146,15 +205,10 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
             MainActivity.this.runOnUiThread(new Runnable()
             {
                 public void run() {
-                    if (result.contains("null")) {
-                        Log.d("MyTag", "CONTAINS NULL");
-                    }
-                    Log.d("UI thread", "I am the UI thread" );
+                    Log.d("UI thread", "I am the UI thread");
                     rawDataDisplay.setText(result);
                     // parseData(result.replace("null","")); // the replace null is [hopefully] a quick fix
-                    // not sure why but the appended XML string appears to contain nnull
-                    // so a quick fix would simply be result.replaceAll("null", "");
-                    parseData((result));
+                    parseData(result.replaceAll("null", ""));
                 }
             });
         }
@@ -178,39 +232,46 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 // Found a start tag
                 if(eventType == XmlPullParser.START_TAG) // never true
                 {
-                    Log.d("MyTag", "START TAG");
-                    Log.d("MyTag", xpp.getName());
-                    // Check which Tag we have
-                    if (xpp.getName().equalsIgnoreCase("channel"))
-                    {
-                        // Now just get the associated text
-                        String temp = xpp.nextText();
-                        String content = xpp.getText();
-                        // Do something with text
-                        //Log.d("MyTitle","TItle " + temp + " is "+ content);
+                    Earthquake quake = new Earthquake();
+                    switch (xpp.getName().toLowerCase()) {
+                        case "title":
+                            // [refactor] should probably use setters here to account for null values
+                            // may even use the builder pattern
+                            quake.title = xpp.nextText(); // or getText
+                            Log.d("Title", quake.title);
+                            break;
+                        case "description":
+                            quake.description = xpp.nextText();
+                            break;
+                        case "link":
+                            quake.link = xpp.nextText();
+                            break;
+                        case "pubdate":
+                            quake.pubDate = xpp.nextText();
+                            break;
+                        case "category":
+                            quake.category = xpp.nextText();
+                            break;
+                        case "lat":
+                            quake.lat = Float.parseFloat(xpp.nextText());
+                            break;
+                        case "lng":
+                            quake.lng = Float.parseFloat(xpp.nextText());
+                            break;
+                        default:
+                            break;
                     }
-                    else
-                        // Check which Tag we have
-                        if (xpp.getName().equalsIgnoreCase("Description"))
-                        {
-                            // Now just get the associated text
-                            String temp = xpp.nextText();
-                            String content = xpp.getText();
-                            Log.d("MyTag","Desc " + temp + " is "+ content);
-                            // Do something with text
-                            //Log.e("MyTag","Description is " + temp);
+                    // [todo] identify continent using geolocation
+                    //continentsManager.add(continentName, quake);
+                    continentsManager.add("asia", quake);
+                    ArrayList<Earthquake> earthquakesInAsia = continentsManager.getAllEarthquakesInContinent("asia"); //.get(0).title;
+                    for (int counter = 0; counter < earthquakesInAsia.size(); counter++) {
+                        if (earthquakesInAsia.get(counter).title == null) {
+                            //Log.d("MyTag", earthquakesInAsia.get(counter).title);
+                            System.out.println(earthquakesInAsia.get(counter).title); // null
                         }
-                        else
-                            // Check which Tag we have
-                            if (xpp.getName().equalsIgnoreCase("link"))
-                            {
-                                // Now just get the associated text
-                                String temp = xpp.nextText();
-                                String content = xpp.getText();
-                                // Do something with text
-                                Log.d("MyTag","Link " + temp + " is "+ content);
-                            }
-                            // more fields need parsing
+                        // System.out.println(earthquakesInAsia.get(counter).title); // null
+                    }
                 }
 
                 // Get the next event

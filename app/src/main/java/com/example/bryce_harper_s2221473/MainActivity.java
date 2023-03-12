@@ -16,6 +16,7 @@ package com.example.bryce_harper_s2221473;
 
 // import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -50,8 +51,42 @@ class Earthquake { // this may actually become an interface
     public String category;
     public float lat;
     public float lng;
+    public double magnittude;
+    public String location;
     public Earthquake() {
 
+    }
+    public void moreParsing() { // [refator] ...
+        if (this.description == null || this.description == "") {
+            return;
+        }
+
+        // assumes details are in a rigid predictable order
+        String[] details = description.split(";");
+        for (int i = 0; i < details.length; i++) {
+            System.out.println("Detail " + details[i] + " I " + i);
+        }
+        System.out.println(" D @ len - 1" + details[details.length - 1]); // magbutyde
+        // crashes the app
+        // this.magnittude = Double.parseDouble(details[details.length - 1].split(":")[1].replace(" ", ""));
+        String[] magAsStr = details[details.length - 1].split(": "); //[1].replace(" ", "");
+        System.out.println("MAG AS STR|" + magAsStr.getClass().getName());
+        for (int i = 0; i < magAsStr.length; i++) {
+            System.out.println(" M A S " + i + " " + magAsStr[i]);
+        }
+        System.out.println(" M A S .L " + magAsStr[magAsStr.length-1] + " Length: " + (magAsStr.length-1));
+        // not confirmed to work, I'm curioous if the "null" in the XML string is somehow affecting this?
+        try { // the above parsing logic appears to be wrong so this is just a quick fix
+            double magAsDbl = Double.valueOf(magAsStr[magAsStr.length-1]);
+            this.magnittude = magAsDbl;
+            System.out.println(("magAsDbl: " + magAsDbl));
+        } catch(NumberFormatException e) { // use a more specialised catchable error type
+            System.out.println("ERROR CAUGHT: ");
+            System.out.println(e);
+            System.out.println("Contiuing ");
+        }
+        // do something similar to get the depth etc
+        System.out.println("Mag " + this.magnittude);
     }
 }
 
@@ -263,6 +298,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                     }
                     // [todo] identify continent using geolocation
                     //continentsManager.add(continentName, quake);
+                    quake.moreParsing();
                     continentsManager.add("asia", quake);
                     ArrayList<Earthquake> earthquakesInAsia = continentsManager.getAllEarthquakesInContinent("asia"); //.get(0).title;
                     for (int counter = 0; counter < earthquakesInAsia.size(); counter++) {

@@ -39,7 +39,6 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-
 // import gcu.mpd.bgsdatastarter.R;
 
 class Earthquake { // this may actually become an interface
@@ -198,10 +197,10 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 //Log.d("IN RL", in.readLine());// <?xml version="1.0"?>
                 // the following approach does not respect immutability (not sure if this matters)
                 // these appear to be causing the nulls
-                in.readLine().replaceAll("<?xml version=\"1.0\"?>", "").trim(); // not sure if I need trim
+                in.readLine().replaceAll("<?xml version=\"1.0\"?>", "");//.trim(); // not sure if I need trim
                 // the following lines may be cause the app to crash
-                in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "").trim();
-                in.readLine().replaceAll("</rss>", "").trim();
+                in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "");//.trim();
+                in.readLine().replaceAll("</rss>", ""); //.trim();
 
                 // I guess for the meantime I'll just ignore the rss tag/s in during the while loop
 
@@ -215,8 +214,9 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                     // if (result == null) result = inputLine;
                     // tags are still slipping through
                     if (!inputLine.contains("<rss version") || !inputLine.contains("</rss>") || !inputLine.contains("<?xml version") || !inputLine.contains("</xml>")) {
-                        result = result + inputLine; //.replace("null", "");
-                        Log.d("MyTag", " INPUT LINE IS "+inputLine);
+                        /* I do not need to replace "nulls" with empty strings here because they are not being added here */
+                        result = result + inputLine; //.replace("null", ""); //
+                        //Log.d("MyTag", " INPUT LINE IS "+inputLine);
                         // Log.d("MyTag",inputLine);
                     }
                     //Log.e("MyTag",inputLine);
@@ -243,11 +243,14 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                     Log.d("UI thread", "I am the UI thread");
                     rawDataDisplay.setText(result);
                     // parseData(result.replace("null","")); // the replace null is [hopefully] a quick fix
+                    // investigate if nulls appear here (maybe replaceAll might return nulls?)
                     parseData(result.replaceAll("null", ""));
+                    //parseData(result );
                 }
             });
         }
     }
+    /*
     private void parseData(String dataToParse)
     {
         // [refactor] call this method in its own thread or run this code in its own thread
@@ -267,36 +270,43 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                 // Found a start tag
                 if(eventType == XmlPullParser.START_TAG) // never true
                 {
+                    System.out.println("XPP text: " + xpp.nextText());
                     Earthquake quake = new Earthquake();
-                    switch (xpp.getName().toLowerCase()) {
-                        case "title":
-                            // [refactor] should probably use setters here to account for null values
-                            // may even use the builder pattern
-                            quake.title = xpp.nextText(); // or getText
-                            Log.d("Title", quake.title);
-                            break;
-                        case "description":
-                            quake.description = xpp.nextText();
-                            break;
-                        case "link":
-                            quake.link = xpp.nextText();
-                            break;
-                        case "pubdate":
-                            quake.pubDate = xpp.nextText();
-                            break;
-                        case "category":
-                            quake.category = xpp.nextText();
-                            break;
-                        case "lat":
-                            quake.lat = Float.parseFloat(xpp.nextText());
-                            break;
-                        case "lng":
-                            quake.lng = Float.parseFloat(xpp.nextText());
-                            break;
-                        default:
-                            break;
+                    if (xpp.getName().equalsIgnoreCase("item")) {
+                        switch (xpp.getName().toLowerCase()) {
+                            case "title":
+                                // [refactor] should probably use setters here to account for null values
+                                // may even use the builder pattern
+                                //quake.title = xpp.nextText(); // or getText
+                                // quake.title = xpp.getText(); // or getText
+                                //                          System.out.println("Get tile...");
+//                            Log.d("Title", quake.title);
+                                System.out.println("XPP text: " + xpp.nextText());
+
+                                break;
+                            case "description":
+                                quake.description = xpp.nextText();
+                                break;
+                            case "link":
+                                quake.link = xpp.nextText();
+                                break;
+                            case "pubdate":
+                                quake.pubDate = xpp.nextText();
+                                break;
+                            case "category":
+                                quake.category = xpp.nextText();
+                                break;
+                            case "lat":
+                                quake.lat = Float.parseFloat(xpp.nextText());
+                                break;
+                            case "lng":
+                                quake.lng = Float.parseFloat(xpp.nextText());
+                                break;
+                            default:
+                                break;
+                        }
                     }
-                    // [todo] identify continent using geolocation
+                    // [todo] identify continent using geolocation - ignore
                     //continentsManager.add(continentName, quake);
                     quake.moreParsing();
                     continentsManager.add("asia", quake);
@@ -304,7 +314,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                     for (int counter = 0; counter < earthquakesInAsia.size(); counter++) {
                         if (earthquakesInAsia.get(counter).title == null) {
                             //Log.d("MyTag", earthquakesInAsia.get(counter).title);
-                            System.out.println(earthquakesInAsia.get(counter).title); // null
+                            // null occurs here
+                            System.out.println("Title: " + earthquakesInAsia.get(counter).title); // null
                         }
                         //System.out.println(earthquakesInAsia.get(counter).title); // null
                     }
@@ -327,4 +338,37 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
         Log.e("MyTag","End document");
 
     } // End of parseData
+     */
+
+    private void parseData(String dataToParse) {
+        try
+        {
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+            XmlPullParser xpp = factory.newPullParser();
+            xpp.setInput( new StringReader( dataToParse ) );
+            int event = xpp.getEventType();
+            while (event != XmlPullParser.END_DOCUMENT) {
+                if (event == XmlPullParser.START_TAG || event == XmlPullParser.END_TAG) {
+                    Log.d("XMLPullParserHandler", "Name: " + xpp.getName());
+                    Log.d("XMLPullParserHandler", "Text: " + xpp.getText()); // always seems to be null; use nextText
+                    Log.d("XMLPullParserHandler", "Next Text: " + xpp.nextText());
+                    String name = xpp.getName();
+                }
+                event = xpp.next();
+            }
+        }
+        catch (XmlPullParserException ae1)
+        {
+            Log.e("MyTag","Parsing error" + ae1.toString());
+        }
+        catch (IOException ae1)
+        {
+            Log.e("MyTag","IO error during parsing");
+        }
+
+        Log.e("MyTag","End document");
+
+
+    }
 }

@@ -350,10 +350,25 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
             int event = xpp.getEventType();
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG || event == XmlPullParser.END_TAG) {
-                    Log.d("XMLPullParserHandler", "Name: " + xpp.getName());
-                    Log.d("XMLPullParserHandler", "Text: " + xpp.getText()); // always seems to be null; use nextText
-                    Log.d("XMLPullParserHandler", "Next Text: " + xpp.nextText());
+                 //   Log.d("XMLPullParserHandler", "Name: " + xpp.getName());
+                    //Log.d("XMLPullParserHandler", "Text: " + xpp.getText()); // always seems to be null; use nextText
+                   // Log.d("XMLPullParserHandler", "Next Text: " + xpp.nextText());
                     String name = xpp.getName();
+                    System.out.print("\n current text: " + xpp.getName() + " title: ");
+                    System.out.print(xpp.getName() == "title\n");
+                    if (xpp.getName() == "title") {
+                     //   System.out.println(" Title " + xpp.nextText());
+                    }
+                    /*
+                    switch (xpp.getName()) {
+                        case "description":
+                            String[] descSplit = xpp.nextText().split(":");
+                            for (int i = 0; i < descSplit.length; i++) {
+                               Log.d("Desc", "Desc: " + i + descSplit[i]);
+                            }
+                            break;
+                    }
+                    */
                 }
                 event = xpp.next();
             }

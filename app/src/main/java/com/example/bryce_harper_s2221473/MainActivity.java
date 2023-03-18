@@ -50,7 +50,7 @@ class Earthquake { // this may actually become an interface
     public String category;
     public float lat;
     public float lng;
-    public double magnittude;
+    public double magnittude; // maybe have a "getAsDouble" & a "getAsString" method?
     public String location;
     public Earthquake() {
 
@@ -341,49 +341,74 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
      */
 
     private void parseData(String dataToParse) {
-        try
-        {
-            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+        XmlPullParserFactory factory = null;
+        XmlPullParser parser = null;
+        try {
+            factory = XmlPullParserFactory.newInstance();
             factory.setNamespaceAware(true);
-            XmlPullParser xpp = factory.newPullParser();
-            xpp.setInput( new StringReader( dataToParse ) );
-            int event = xpp.getEventType();
-            while (event != XmlPullParser.END_DOCUMENT) {
-                if (event == XmlPullParser.START_TAG || event == XmlPullParser.END_TAG) {
-                 //   Log.d("XMLPullParserHandler", "Name: " + xpp.getName());
-                    //Log.d("XMLPullParserHandler", "Text: " + xpp.getText()); // always seems to be null; use nextText
-                   // Log.d("XMLPullParserHandler", "Next Text: " + xpp.nextText());
-                    String name = xpp.getName();
-                    System.out.print("\n current text: " + xpp.getName() + " title: ");
-                    System.out.print(xpp.getName() == "title\n");
-                    if (xpp.getName() == "title") {
-                     //   System.out.println(" Title " + xpp.nextText());
-                    }
-                    /*
-                    switch (xpp.getName()) {
-                        case "description":
-                            String[] descSplit = xpp.nextText().split(":");
-                            for (int i = 0; i < descSplit.length; i++) {
-                               Log.d("Desc", "Desc: " + i + descSplit[i]);
+            parser = factory.newPullParser();
+
+            parser.setInput(new StringReader( dataToParse ) );
+            boolean check =false;
+            String text = "";
+
+            //factory instantiates an object
+            boolean parsingItem = false;
+            int eventType = parser.getEventType();
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+
+                switch (eventType) {
+                    case XmlPullParser.START_TAG:
+                        String tagname = parser.getName();
+                        Log.i("Tag names are ", tagname);
+                        if (parser.getName().equalsIgnoreCase("item")) {
+                            parsingItem = true;
+                            System.out.println("PARSING ITEM");
+                        }
+                        break;
+
+                    case XmlPullParser.TEXT:
+                        text = parser.getText();
+                        break;
+
+                    case XmlPullParser.END_TAG:
+                        if (parsingItem) {
+                            if (parser.getName().equalsIgnoreCase("title")) {
+                                Log.i("Title is", text + " TAG IS " + parser.getName());
+                                // further parse the title
                             }
-                            break;
-                    }
-                    */
+                            if (parser.getName().equalsIgnoreCase("description")) {
+                                Log.i("Description is", text + " TAG IS " + parser.getName());
+                                // further parse the title
+                                String[] splitDesc = text.split(";");
+                                // [refactor] I guess I could use direct inedexing or iteration with the tradeoff being flexibility or speed
+                                String location = splitDesc[1].replace("Location: ", "").replaceAll(" ", "");
+                                Log.i("Location", location);
+                                /*
+                                if (!monitoringStations.contains(location) {
+                                    monitoringStations.add(location);
+                                }
+                                */
+                                // [refactor] convert the replacement to lowercase
+                                Double magnitude = Double.parseDouble(splitDesc[splitDesc.length-1].replace("Magnitude: ", "").replaceAll(" ", ""));
+                                Log.i("magnitude", ""+magnitude);
+                            }
+                        }
+                        if (parser.getName().equalsIgnoreCase("item")) { // is never true
+                            parsingItem = false;
+                            System.out.println("NO LONGER PARSING ITEM");
+                        }
+                        break;
+                    default:
+                        break;
                 }
-                event = xpp.next();
+                eventType = parser.next();
             }
-        }
-        catch (XmlPullParserException ae1)
-        {
-            Log.e("MyTag","Parsing error" + ae1.toString());
-        }
-        catch (IOException ae1)
-        {
-            Log.e("MyTag","IO error during parsing");
-        }
 
-        Log.e("MyTag","End document");
-
-
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

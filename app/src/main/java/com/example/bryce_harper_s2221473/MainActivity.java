@@ -15,12 +15,15 @@ package com.example.bryce_harper_s2221473;
 // package gcu.mpd.bgsdatastarter;
 
 // import android.support.v7.app.AppCompatActivity;
+import android.app.ListActivity;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -38,6 +41,7 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 // import gcu.mpd.bgsdatastarter.R;
 
@@ -90,42 +94,34 @@ class Earthquake { // this may actually become an interface
 }
 
 
-class ContinentsManager { // do I need to inherit from iterable to enable iteration?
-    private HashMap<String, ArrayList<Earthquake>> continents;
-    /* Africa, Antarctica, Asia,
-     Oceania, Europe, North America, South America.
-   */
-    // Australasia is now called Oceania
-    public ContinentsManager() { // [refactor] should probably use .ToLowerCase() or ignoreCase to prevent case sensitivity bugs
-        this.continents = new HashMap<String, ArrayList<Earthquake>>();
-        // [refactor] use an array e.g. {"continents"}.forEach( put (...) )
-        this.continents.put("africa", new ArrayList());
-        this.continents.put("antarctica", new ArrayList());
-        this.continents.put("asia", new ArrayList());
-        this.continents.put("oceania", new ArrayList());
-        this.continents.put("europe", new ArrayList());
-        this.continents.put("north america", new ArrayList());
-        this.continents.put("south america", new ArrayList());
+class MonitoringStationsManager { // do I need to inherit from iterable to enable iteration?
+    private HashMap<String, ArrayList<Earthquake>> monitoringStations;
+    public MonitoringStationsManager() { // [refactor] should probably use .ToLowerCase() or ignoreCase to prevent case sensitivity bugs
+        this.monitoringStations = new HashMap<String, ArrayList<Earthquake>>();
     }
 
-    public void add(String continent, Earthquake earthquake) {
-        if (this.continents.get(continent) == null) {
-            this.continents.put(continent, new ArrayList<Earthquake>());
-        } else {
-            this.continents.get(continent).add(earthquake);
+    public void add(String monitoringStation, Earthquake earthquake) {
+        if (monitoringStations.containsKey(monitoringStations)) {
+            this.monitoringStations.get(monitoringStation).add(earthquake);
             // doesn't crash app
             if (earthquake.title != null) {
                 Log.d("E T", earthquake.title);
             }
+        } else {
+            monitoringStations.put(monitoringStation, new ArrayList<Earthquake>());
         }
     }
 
-    public ArrayList getAllEarthquakesInContinent(String continent) {
-        return this.continents.get(continent);
+    public ArrayList getAllEarthquakesFromMonitoringStation(String monitoringStation) {
+        return this.monitoringStations.get(monitoringStation);
+    }
+    public ArrayList getAllEarthquakesByIndex(int index) {
+        return this.monitoringStations.get(index);
     }
 }
 
-public class MainActivity extends AppCompatActivity implements OnClickListener
+// todo: convert the list portion of the app to a fragment
+public class MainActivity extends ListActivity implements OnClickListener
 {
     private TextView rawDataDisplay;
     private Button startButton;
@@ -134,7 +130,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
     private String url1="";
     //private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
     private String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
-    ContinentsManager continentsManager;
+    MonitoringStationsManager monitoringStationsManager;
+    ArrayAdapter<String> adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -146,7 +143,11 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
         startButton.setOnClickListener(this);
 
         // More Code goes here
-        continentsManager = new ContinentsManager();
+        monitoringStationsManager = new MonitoringStationsManager();
+        adapter=new ArrayAdapter<String>(this,
+                android.R.layout.simple_list_item_1,
+                monitoringStationsManager.getAllEarthquakesByIndex(0));
+        setListAdapter(adapter);
     }
 
     public void onClick(View aview)
@@ -246,6 +247,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                     // investigate if nulls appear here (maybe replaceAll might return nulls?)
                     parseData(result.replaceAll("null", ""));
                     //parseData(result );
+
                 }
             });
         }
@@ -356,13 +358,14 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
             boolean parsingItem = false;
             int eventType = parser.getEventType();
             while (eventType != XmlPullParser.END_DOCUMENT) {
-
+                Earthquake earthquake = null;
                 switch (eventType) {
                     case XmlPullParser.START_TAG:
                         String tagname = parser.getName();
                         Log.i("Tag names are ", tagname);
                         if (parser.getName().equalsIgnoreCase("item")) {
                             parsingItem = true;
+                            earthquake = new Earthquake();
                             System.out.println("PARSING ITEM");
                         }
                         break;
@@ -376,6 +379,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                             if (parser.getName().equalsIgnoreCase("title")) {
                                 Log.i("Title is", text + " TAG IS " + parser.getName());
                                 // further parse the title
+                                earthquake.title = text;
                             }
                             if (parser.getName().equalsIgnoreCase("description")) {
                                 Log.i("Description is", text + " TAG IS " + parser.getName());
@@ -392,9 +396,13 @@ public class MainActivity extends AppCompatActivity implements OnClickListener
                                 // [refactor] convert the replacement to lowercase
                                 Double magnitude = Double.parseDouble(splitDesc[splitDesc.length-1].replace("Magnitude: ", "").replaceAll(" ", ""));
                                 Log.i("magnitude", ""+magnitude);
+                                earthquake.location = location;
+                                earthquake.magnittude = magnitude;
                             }
                         }
                         if (parser.getName().equalsIgnoreCase("item")) { // is never true
+                            this.monitoringStationsManager.add(earthquake.location, earthquake);
+                            adapter.notifyDataSetChanged();
                             parsingItem = false;
                             System.out.println("NO LONGER PARSING ITEM");
                         }

@@ -113,9 +113,14 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
     }
 
     public ArrayList getAllEarthquakesFromMonitoringStation(String monitoringStation) {
-        return this.monitoringStations.get(monitoringStation);
+        if (this.monitoringStations.containsKey(monitoringStation)) {
+            return this.monitoringStations.get(monitoringStation);
+        } else {
+            return new ArrayList();
+        }
     }
-    public ArrayList getAllEarthquakesByIndex(int index) {
+
+    public ArrayList<Earthquake> getAllEarthquakesByIndex(int index) {
         return this.monitoringStations.get(index);
     }
 }
@@ -132,6 +137,7 @@ public class MainActivity extends ListActivity implements OnClickListener
     private String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
     MonitoringStationsManager monitoringStationsManager;
     ArrayAdapter<String> adapter;
+    ArrayList<String> listItems = new ArrayList<String>();
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -140,13 +146,15 @@ public class MainActivity extends ListActivity implements OnClickListener
         // Set up the raw links to the graphical components
         rawDataDisplay = (TextView)findViewById(R.id.rawDataDisplay);
         startButton = (Button)findViewById(R.id.startButton);
-        startButton.setOnClickListener(this);
+            startButton.setOnClickListener(this);
 
         // More Code goes here
         monitoringStationsManager = new MonitoringStationsManager();
-        adapter=new ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_1,
-                monitoringStationsManager.getAllEarthquakesByIndex(0));
+        //ArrayList<String> listItems=new ArrayList<String>();
+        String monitoringStation = "TAJIKISTAN"; // hypothetically this would be changed dynamiically?
+        ArrayList tajikistanEarthquakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(monitoringStation);
+        //adapter=new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, tajikistanEarthquakes);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
         setListAdapter(adapter);
     }
 
@@ -242,11 +250,17 @@ public class MainActivity extends ListActivity implements OnClickListener
             {
                 public void run() {
                     Log.d("UI thread", "I am the UI thread");
-                    rawDataDisplay.setText(result);
+                    //rawDataDisplay.setText(result);
                     // parseData(result.replace("null","")); // the replace null is [hopefully] a quick fix
                     // investigate if nulls appear here (maybe replaceAll might return nulls?)
                     parseData(result.replaceAll("null", ""));
                     //parseData(result );
+                    listItems.add("1");
+                    adapter.notifyDataSetChanged();
+                    listItems.add("2");
+                    adapter.notifyDataSetChanged();
+                    listItems.add("3");
+                    adapter.notifyDataSetChanged();
 
                 }
             });
@@ -379,7 +393,7 @@ public class MainActivity extends ListActivity implements OnClickListener
                             if (parser.getName().equalsIgnoreCase("title")) {
                                 Log.i("Title is", text + " TAG IS " + parser.getName());
                                 // further parse the title
-                                earthquake.title = text;
+                                //earthquake.title = text;
                             }
                             if (parser.getName().equalsIgnoreCase("description")) {
                                 Log.i("Description is", text + " TAG IS " + parser.getName());
@@ -396,12 +410,13 @@ public class MainActivity extends ListActivity implements OnClickListener
                                 // [refactor] convert the replacement to lowercase
                                 Double magnitude = Double.parseDouble(splitDesc[splitDesc.length-1].replace("Magnitude: ", "").replaceAll(" ", ""));
                                 Log.i("magnitude", ""+magnitude);
-                                earthquake.location = location;
-                                earthquake.magnittude = magnitude;
+                                //earthquake.location = location;
+                             //   earthquake.magnittude = magnitude;
                             }
                         }
-                        if (parser.getName().equalsIgnoreCase("item")) { // is never true
-                            this.monitoringStationsManager.add(earthquake.location, earthquake);
+                        if (parser.getName().equalsIgnoreCase("item")) {
+                           // this.monitoringStationsManager.add(earthquake.location, earthquake);
+                            listItems.add("1");
                             adapter.notifyDataSetChanged();
                             parsingItem = false;
                             System.out.println("NO LONGER PARSING ITEM");

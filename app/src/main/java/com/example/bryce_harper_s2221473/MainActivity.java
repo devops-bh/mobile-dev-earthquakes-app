@@ -41,6 +41,7 @@ import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 // import gcu.mpd.bgsdatastarter.R;
@@ -57,7 +58,7 @@ class Earthquake { // this may actually become an interface
     public double magnittude; // maybe have a "getAsDouble" & a "getAsString" method?
     public String location;
     public Earthquake() {
-
+        System.out.println("EARTHQUAKE CREATED");
     }
     public void moreParsing() { // [refator] ...
         if (this.description == null || this.description == "") {
@@ -91,6 +92,7 @@ class Earthquake { // this may actually become an interface
         // do something similar to get the depth etc
         System.out.println("Mag " + this.magnittude);
     }
+
 }
 
 
@@ -253,15 +255,32 @@ public class MainActivity extends ListActivity implements OnClickListener
                     //rawDataDisplay.setText(result);
                     // parseData(result.replace("null","")); // the replace null is [hopefully] a quick fix
                     // investigate if nulls appear here (maybe replaceAll might return nulls?)
-                    parseData(result.replaceAll("null", ""));
-                    //parseData(result );
-                    listItems.add("1");
+//                    ArrayList<Earthquake> parsedData = parseData(result.replaceAll("null", ""));
+   //                 if (parsedData == null) { System.out.println(("NUll")); }
+                    /*
+                    ArrayList pd = parseData(result );
+
+                    if (pd == null) { System.out.println("Dammit"); }
+                    if (pd != null) {
+                        System.out.println("Size: " + pd.size());
+                    }
+                     */
+                    ArrayList<Earthquake> earthquakes = parseData(result);
+                    System.out.println("Earthquake size: "+ earthquakes.size()); // 5
+                    for (int i = 0; i < earthquakes.size(); i++) {
+                        String title = earthquakes.get(i).title;
+                        // the following lin eoutputs "null null"
+                        listItems.add(earthquakes.get(i).title + " " + earthquakes.get(i).description);
+                    }
                     adapter.notifyDataSetChanged();
-                    listItems.add("2");
-                    adapter.notifyDataSetChanged();
-                    listItems.add("3");
+                    /*
+                    for (int i = 0; i < parsedData.size(); i++) {
+                        String title = parsedData.get(i).title;
+                        listItems.add(parsedData.get(i).title + " " + parsedData.get(i).description);
+                    }
                     adapter.notifyDataSetChanged();
 
+                     */
                 }
             });
         }
@@ -355,7 +374,7 @@ public class MainActivity extends ListActivity implements OnClickListener
 
     } // End of parseData
      */
-
+/*
     private void parseData(String dataToParse) {
         XmlPullParserFactory factory = null;
         XmlPullParser parser = null;
@@ -406,7 +425,7 @@ public class MainActivity extends ListActivity implements OnClickListener
                                 if (!monitoringStations.contains(location) {
                                     monitoringStations.add(location);
                                 }
-                                */
+                                *
                                 // [refactor] convert the replacement to lowercase
                                 Double magnitude = Double.parseDouble(splitDesc[splitDesc.length-1].replace("Magnitude: ", "").replaceAll(" ", ""));
                                 Log.i("magnitude", ""+magnitude);
@@ -433,5 +452,191 @@ public class MainActivity extends ListActivity implements OnClickListener
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+ */
+
+    private ArrayList<Earthquake> parseData(String dataToParse)
+    {
+        Earthquake widget = null;
+//        ArrayList <Earthquake> alist = null;
+        ArrayList<Earthquake> alist  = new ArrayList<Earthquake>();
+
+        try
+        {
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+            XmlPullParser xpp = factory.newPullParser();
+            xpp.setInput( new StringReader( dataToParse ) );
+            int eventType = xpp.getEventType();
+            while (eventType != XmlPullParser.END_DOCUMENT)
+            {
+                // Found a start tag
+                if(eventType == XmlPullParser.START_TAG)
+                {
+                    System.out.println("Name: " + xpp.getName());
+                    Log.d("Name: ", xpp.getName());
+                    boolean isItem = false; // not convinced this is needed; is to ensure the earlier title tag deson't interfere
+                    // Check which Tag we have
+                    if (xpp.getName().equalsIgnoreCase("channel"))
+                    {
+                        Log.d("ALIST", "Instantiating alist"); // never logged
+                        //alist  = new ArrayList<Earthquake>();
+                    }
+                    else
+                    if (xpp.getName().equalsIgnoreCase("item"))
+                    {
+                        /* adding the previous earthquake to the list because
+                        * a closing tag for "item" never seems to be encountered
+                        * I don't think these lines are ran as expected */
+                        if (widget != null && alist != null) {
+                             //   alist.add(widget);
+                              //  System.out.println("LIST" + "added");
+                           //     Log.d("CURRENT", "added");
+                        } else {
+                          //  System.out.println("LIST" + "WIDGET AND/OR LIST IS NULL");
+                         //   Log.d("CURRENT", "WIDGET AND/OR LIST IS NULL");
+                        }
+
+                        Log.e("MyTag","Item Start Tag found");
+                        widget = new Earthquake();
+                        isItem = true;
+                    } // else if (xpp.getName().equalsIgnoreCase("title"))
+                    if (isItem) {
+                        if (xpp.getName().equalsIgnoreCase("title")) {
+                            // Now just get the associated text
+                            String temp = xpp.nextText();
+                            // Do something with text
+                            Log.e("MyTag", "Bolt is " + temp);
+                            // widget.title = temp;
+                            //  System.out.println("Earthquake title:" + widget.title);
+                            if (widget != null) {
+                                widget.title = temp;
+                                System.out.println("EARTHQUAKE TITLE: " + widget.title);
+                            }
+                        } else
+                            // Check which Tag we have
+                            if (xpp.getName().equalsIgnoreCase("description")) {
+                                // Now just get the associated text
+                                String temp = xpp.nextText();
+                                // Do something with text
+                                Log.e("MyTag", "Nut is " + temp);
+                                if (widget != null) {
+                                    widget.description = temp;
+                                }
+                                //      widget.description = temp;
+                            } else
+                                // Check which Tag we have
+                                if (xpp.getName().equalsIgnoreCase("pubDate")) {
+                                    // Now just get the associated text
+                                    String temp = xpp.nextText();
+                                    // Do something with text
+                                    Log.d("MyTag", "Washer is " + temp);
+                                    if (widget != null) {
+                                        widget.pubDate = temp;
+                                        // NOTE: ONLY DO THIS ON THE LAST PARSED TAG
+                                        // ASSUMES THE LAST TAG IS EXPECTED
+                                        alist.add(widget);
+                                        System.out.println("pubDate is " + temp);
+                                        Log.d("pubDate is " , temp);
+                                    }
+                                    //        widget.pubDate = temp;
+                                }
+                    }
+                }
+                else
+                if(eventType == XmlPullParser.END_TAG) {
+                    System.out.println("END_TAG" + xpp.getName());
+                    Log.d("END_TAG", "END TAG" + xpp.getName());
+                    boolean isItem = false;
+                    if (xpp.getName().equalsIgnoreCase("item")) { // there doesn't seem to be an closing for "item
+                        Log.i("LIST", "widget is being added to list " + widget.toString());
+                        if (widget == null) {
+                //            System.out.println("LIST" + " widget is null");
+                //            Log.d("LIST" ," widget is null");
+                        } else {
+                  //          alist.add(widget);
+                   //         System.out.println("LIST" + " added");
+                     //       Log.d("LIST" ," added");
+                        }
+                        isItem = true;
+                        System.out.println("iS ITEM IS TRUE");
+                        //alist.add(widget);
+                        //                      listItems.add(widget.title);
+//                        adapter.notifyDataSetChanged();
+                        // listItems.add(widget.title + " " + widget.description);
+                    }
+                    //else if (xpp.getName().equalsIgnoreCase("channel")) {
+                        if (isItem) {
+                            if (xpp.getName().equalsIgnoreCase("title")) {
+                            /*
+                        int size;
+                        size = alist.size();
+                        Log.e("MyTag", "widgetcollection size is " + size);
+                        */
+                        //   adapter.notifyDataSetChanged();
+                            System.out.println("Closing tag - Title: ");
+                            Log.d("Closing tag", "Title");
+                        }
+                    }
+                    if (widget != null && alist != null) {
+                        // alist.add(widget); // earthquake object is not null but properties are
+                   //     System.out.println("LIST" + "added " + widget.title); // widget.title is null
+                       // Log.d("CURRENT", "added " + widget.title); // widget.title is null
+                        // this is logged
+                        // but this code is ran multiple times
+                        // & thus may cause duplicate earthquales
+  //                      listItems.add(widget.title);
+//                        adapter.notifyDataSetChanged();
+                    } else {
+                    //    System.out.println("LIST" + "WIDGET AND/OR LIST IS NULL");
+                    //    Log.d("CURRENT", "WIDGET AND/OR LIST IS NULL");
+                    }
+
+                    isItem = false;
+                }
+
+
+                // Get the next event
+                eventType = xpp.next();
+
+            } // End of while
+            /*
+            // does nothing
+                        listItems.add(widget.title);
+                        adapter.notifyDataSetChanged();
+                */
+            //return alist;
+        }
+        catch (XmlPullParserException ae1)
+        {
+            Log.e("MyTag","Parsing error" + ae1.toString());
+        }
+        catch (IOException ae1)
+        {
+            Log.e("MyTag","IO error during parsing");
+        }
+
+        Log.e("MyTag","End document");
+        /*
+        for (int i = 0; i < alist.size(); i++) {
+            String title = alist.get(i).title;
+            listItems.add(alist.get(i).title + " " + alist.get(i).description);
+        }
+        adapter.notifyDataSetChanged();
+
+         */
+        if (alist != null) {
+            System.out.println("NOT Null " + alist.size());
+            /*
+            // errors
+            listItems.add(widget.title);
+            adapter.notifyDataSetChanged();
+            */
+        } else {
+            System.out.println("ALIST IS NULL");
+        }
+        return alist;
+
     }
 }

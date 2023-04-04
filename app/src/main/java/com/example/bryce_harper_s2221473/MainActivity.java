@@ -27,6 +27,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearSnapHelper;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -271,8 +272,11 @@ public class MainActivity extends ListActivity implements OnClickListener
         }
     private ArrayList<Earthquake> parseData(String dataToParse)// throws XmlPullParserException, IOException
         {
+            /*
             ArrayList<Earthquake> alist = new ArrayList<Earthquake>();
             Earthquake earthquake = null;
+             */
+            /*
             try {
 
                 XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
@@ -282,22 +286,64 @@ public class MainActivity extends ListActivity implements OnClickListener
                 xpp.setInput(new StringReader(dataToParse));
                 int eventType = xpp.getEventType();
                 while (eventType != XmlPullParser.END_DOCUMENT) {
+                        boolean isItem = false;
                         if (eventType == XmlPullParser.START_DOCUMENT) {
                             System.out.println("Start document");
                         } else if (eventType == XmlPullParser.START_TAG) {
                             //if (!xpp.getName().equalsIgnoreCase("geo:lat") || xpp.getName().equalsIgnoreCase("geo:long")) {
 
                             //}
+                            //System.out.println(xpp.getText());
+                           if (xpp.getName().equalsIgnoreCase("item")) {
+                                isItem = true;
+                            }
                             System.out.println("Start tag " + xpp.getName());
                         } else if (eventType == XmlPullParser.END_TAG) {
                             //if (!xpp.getName().equalsIgnoreCase("geo:lat") || xpp.getName().equalsIgnoreCase("geo:long")) {
 
                             //}
-                            System.out.println("End tag " + xpp.getName());
+                            switch (xpp.getName()) {
+                                case "item":
+  //                                  monitoringStationsManager.add(earthquake.location, earthquake);
+    //                               System.out.println("End tag " + xpp.getName() + "CUR TEXT " + xpp.getText());
+                                    isItem = false;
+                                    break;
+                            }
                         } else if (eventType == XmlPullParser.TEXT) {
+//                            String innerText = xpp.getText();
                             //if (!xpp.getName().equalsIgnoreCase("geo:lat") || xpp.getName().equalsIgnoreCase("geo:long")) {
 
                             //}
+                            /*
+                            switch (xpp.getName().toLowerCase()) {
+                                case "item":
+                                    isItem = true;
+                                    earthquake = new Earthquake();
+                                    break;
+                                case "title":
+                                    if (!isItem) break;
+                                    earthquake.title = innerText;
+                                case "description":
+                                    // assumes details are in a rigid predictable order
+                                    String[] details = innerText.split(";");
+                                    String location = details[1].replace("location: ", "");
+                                    earthquake.location = location;
+                                    System.out.println(earthquake.location);
+                                    String[] magAsStr = details[details.length - 1].split(": ");
+                                    //try {
+                                    double magAsDbl = Double.valueOf(magAsStr[magAsStr.length - 1]);
+                                    double magnittude = magAsDbl;
+                                    earthquake.magnittude = magnittude;
+                                    //} catch(NumberFormatException e) { // use a more specialised catchable error type
+                                    /*
+                                        System.out.println("ERROR CAUGHT: ");
+                                        System.out.println(e);
+                                        System.out.println("Contiuing ");
+                                        */
+                                    //}
+                                    //break;
+                            //}
+            /*
                             System.out.println("Text " + xpp.getText());
                         }
                         eventType = xpp.next();
@@ -308,6 +354,101 @@ public class MainActivity extends ListActivity implements OnClickListener
             } catch (IOException e) {
                 Log.e("IOException", e.getLocalizedMessage());
             }
+
+            return alist;
+             */
+
+            // todo: implement earthquake using a mix of the PullParser3 example code and the above code
+
+            Earthquake widget = null;
+            //LinkedList <Earthquake> alist = null; // will unlikely use this list since I'm using the monitoringStations data structure/s
+            ArrayList <Earthquake> alist = new ArrayList<>(); // ^
+            try
+            {
+                XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+                factory.setNamespaceAware(true);
+                XmlPullParser xpp = factory.newPullParser();
+                xpp.setInput( new StringReader( dataToParse ) );
+                int eventType = xpp.getEventType();
+                boolean isItem = false;
+                while (eventType != XmlPullParser.END_DOCUMENT)
+                {
+                    // Found a start tag
+                    if(eventType == XmlPullParser.START_TAG)
+                    {
+                        // Check which Tag we have
+                        /*
+                        if (xpp.getName().equalsIgnoreCase("channel"))
+                        {
+                            alist  = new LinkedList<alist>();
+                        }
+                        else */
+                        if (xpp.getName().equalsIgnoreCase("item"))
+                        {
+                            Log.e("MyTag","Item Start Tag found");
+                            widget = new Earthquake();
+                            isItem = true;
+                        }
+                        else
+                        if (xpp.getName().equalsIgnoreCase("title"))
+                        {
+                            // Now just get the associated text
+                            String temp = xpp.nextText();
+                            // Do something with text
+                            Log.e("MyTag","Bolt is " + temp);
+                            if (isItem) {
+                                widget.title = temp;
+                            }
+                        }
+                        else
+                            // Check which Tag we have
+                            if (xpp.getName().equalsIgnoreCase("description"))
+                            {
+                                if (isItem) {
+                                // todo - extract location + magnitude (see above)
+                                }
+                            }
+                    }
+                    else
+                    if(eventType == XmlPullParser.END_TAG)
+                    {
+                        if (xpp.getName().equalsIgnoreCase("item"))
+                        {
+                            Log.e("MyTag","widget is " + widget.toString() + "TITEL: " + widget.title);
+                            alist.add(widget);
+                            // use my monitoringStationsManager
+                            isItem = false;
+                        }
+                        /*
+                        else
+                        if (xpp.getName().equalsIgnoreCase("widgetcollection"))
+                        {
+                            int size;
+                            size = alist.size();
+                            Log.e("MyTag","widgetcollection size is " + size);
+                        }
+                         */
+                    }
+
+
+                    // Get the next event
+                    eventType = xpp.next();
+
+                } // End of while
+
+                //return alist;
+            }
+            catch (XmlPullParserException ae1)
+            {
+                Log.e("MyTag","Parsing error" + ae1.toString());
+            }
+            catch (IOException ae1)
+            {
+                Log.e("MyTag","IO error during parsing");
+            }
+
+            Log.e("MyTag","End document");
+
             return alist;
         }
     }

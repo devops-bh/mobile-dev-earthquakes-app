@@ -201,8 +201,9 @@ public class MainActivity extends ListActivity implements OnClickListener
                 // the following lines may be cause the app to crash
                 in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "");//.trim();
                 in.readLine().replaceAll("</rss>", ""); //.trim();
-                in.readLine().replaceAll("<channel>", "");
-                in.readLine().replaceAll("</channel>", "");
+  //              in.readLine().replaceAll("<channel>", "");
+//                in.readLine().replaceAll("</channel>", "");
+                //in.readLine().replaceAll("geo:",""); // isn't working as expected
 
                 // I guess for the meantime I'll just ignore the rss tag/s in during the while loop
 
@@ -210,18 +211,32 @@ public class MainActivity extends ListActivity implements OnClickListener
 
                 while ((inputLine = in.readLine()) != null)
                 {
+                    if (/*!inputLine.contains("geo") &&*/ !inputLine.contains("<rss version") && !inputLine.contains("</rss>") && !inputLine.contains("<?xml version") && !inputLine.contains("</xml>")) {
+                        /* I do not need to replace "nulls" with empty strings here because they are not being added here */
+                        //Log.d("MyTag", " INPUT LINE IS "+inputLine);
+                        // Log.d("MyTag",inputLine);
+                        //Log.e("MyTag",inputLine);
+//                        if (inputLine.contains("geo")) {
+                            //System.out.println(inputLine.substring(5, inputLine.length()));
+  //                          System.out.println(inputLine);
+                    //        result += inputLine.replaceAll("geo:","");
+                    //        System.out.println(" BECOMES: " + inputLine.replaceAll("geo:",""));
+                        /*
+                            inputLine.replace("geo:", "");
+                            System.out.println(inputLine);
+                        */
+//                        } else {
+  //                          result = result + inputLine; //.replace("null", ""); //
+    //                    }
+                        if (!inputLine.equalsIgnoreCase("<channel>") && !inputLine.equalsIgnoreCase("</channel>")) {
+                            result = result + inputLine.replaceAll("geo:", ""); //.replace("null", ""); //
+                        }
+                    }
                     // I think it'd be better to use the START_TAG + END_TAGS when parsing but I'm not sure if thats allowed
                     // I think I should use an or statement rather than an && but should probably double check this later
                     //if (!inputLine.contains("<rss version=") && !inputLine.contains("</rss>")) { // kinda wanna add a better check to ensure its a tag
                     // if (result == null) result = inputLine;
                     // tags are still slipping through
-                    if (!inputLine.contains("<rss version") || !inputLine.contains("</rss>") || !inputLine.contains("<?xml version") || !inputLine.contains("</xml>")) {
-                        /* I do not need to replace "nulls" with empty strings here because they are not being added here */
-                        result = result + inputLine; //.replace("null", ""); //
-                        //Log.d("MyTag", " INPUT LINE IS "+inputLine);
-                        // Log.d("MyTag",inputLine);
-                    }
-                    //Log.e("MyTag",inputLine);
 
                 }
                 in.close();
@@ -254,8 +269,50 @@ public class MainActivity extends ListActivity implements OnClickListener
                 }
             });
         }
+    private ArrayList<Earthquake> parseData(String dataToParse)// throws XmlPullParserException, IOException
+        {
+            ArrayList<Earthquake> alist = new ArrayList<Earthquake>();
+            Earthquake earthquake = null;
+            try {
+
+                XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+                factory.setNamespaceAware(true);
+                XmlPullParser xpp = factory.newPullParser();
+
+                xpp.setInput(new StringReader(dataToParse));
+                int eventType = xpp.getEventType();
+                while (eventType != XmlPullParser.END_DOCUMENT) {
+                        if (eventType == XmlPullParser.START_DOCUMENT) {
+                            System.out.println("Start document");
+                        } else if (eventType == XmlPullParser.START_TAG) {
+                            //if (!xpp.getName().equalsIgnoreCase("geo:lat") || xpp.getName().equalsIgnoreCase("geo:long")) {
+
+                            //}
+                            System.out.println("Start tag " + xpp.getName());
+                        } else if (eventType == XmlPullParser.END_TAG) {
+                            //if (!xpp.getName().equalsIgnoreCase("geo:lat") || xpp.getName().equalsIgnoreCase("geo:long")) {
+
+                            //}
+                            System.out.println("End tag " + xpp.getName());
+                        } else if (eventType == XmlPullParser.TEXT) {
+                            //if (!xpp.getName().equalsIgnoreCase("geo:lat") || xpp.getName().equalsIgnoreCase("geo:long")) {
+
+                            //}
+                            System.out.println("Text " + xpp.getText());
+                        }
+                        eventType = xpp.next();
+                }
+                System.out.println("End document");
+            } catch (XmlPullParserException e) {
+                Log.e("XmlPullParserException", e.getLocalizedMessage());
+            } catch (IOException e) {
+                Log.e("IOException", e.getLocalizedMessage());
+            }
+            return alist;
+        }
     }
 
+    /*
     private ArrayList<Earthquake> parseData(String dataToParse)
     {
         Earthquake earthquake = null;
@@ -306,15 +363,17 @@ public class MainActivity extends ListActivity implements OnClickListener
                     Log.d("END_TAG", "END TAG" + xpp.getName());
                     if (xpp.getName().equalsIgnoreCase("item")) { // there doesn't seem to be an closing for "item
                         //alist.add(earthquake);
+                        if (earthquake != null) {
+                            System.out.println("but there is hope");
+                            alist.add(earthquake); // [bug] earthquake is repeatedly adding argentina (atm)
+                        }
+                    }
+                    if (xpp.getName().equalsIgnoreCase("channel")) {
+                        System.out.println("channel tag"); // I suspect this will never run
                     }
                 }
-
                 // Get the next event
                 eventType = xpp.next();
-                if (earthquake != null) {
-                    System.out.println("but there is hope");
-                    alist.add(earthquake);
-                }
             } // End of while
         }
         catch (XmlPullParserException ae1)
@@ -330,4 +389,5 @@ public class MainActivity extends ListActivity implements OnClickListener
         return alist;
 
     }
+     */
 }

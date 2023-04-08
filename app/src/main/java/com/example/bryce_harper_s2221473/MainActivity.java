@@ -16,6 +16,7 @@ package com.example.bryce_harper_s2221473;
 
 // import android.support.v7.app.AppCompatActivity;
 import android.app.ListActivity;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -70,7 +71,7 @@ class Earthquake { // this may actually become an interface
     public double magnittude; // maybe have a "getAsDouble" & a "getAsString" method?
     public String location;
     public Earthquake() {
-        System.out.println("EARTHQUAKE CREATED");
+
     }
     public void moreParsing() { // [refator] ...
         if (this.description == null || this.description == "") {
@@ -80,26 +81,20 @@ class Earthquake { // this may actually become an interface
         // assumes details are in a rigid predictable order
         String[] details = description.split(";");
         for (int i = 0; i < details.length; i++) {
-            System.out.println("Detail " + details[i] + " I " + i);
         }
-        System.out.println(" D @ len - 1" + details[details.length - 1]); // magbutyde
         // crashes the app
         // this.magnittude = Double.parseDouble(details[details.length - 1].split(":")[1].replace(" ", ""));
         String[] magAsStr = details[details.length - 1].split(": "); //[1].replace(" ", "");
-        System.out.println("MAG AS STR|" + magAsStr.getClass().getName());
         for (int i = 0; i < magAsStr.length; i++) {
-            System.out.println(" M A S " + i + " " + magAsStr[i]);
+
         }
-        System.out.println(" M A S .L " + magAsStr[magAsStr.length-1] + " Length: " + (magAsStr.length-1));
         // not confirmed to work, I'm curioous if the "null" in the XML string is somehow affecting this?
         try { // the above parsing logic appears to be wrong so this is just a quick fix
             double magAsDbl = Double.valueOf(magAsStr[magAsStr.length-1]);
             this.magnittude = magAsDbl;
-            System.out.println(("magAsDbl: " + magAsDbl));
         } catch(NumberFormatException e) { // use a more specialised catchable error type
             System.out.println("ERROR CAUGHT: ");
             System.out.println(e);
-            System.out.println("Contiuing ");
         }
         // do something similar to get the depth etc
         System.out.println("Mag " + this.magnittude);
@@ -114,7 +109,19 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
         this.monitoringStations = new ConcurrentHashMap<String, ArrayList<Earthquake>>();
     }
 
+
     public void add(String monitoringStation, Earthquake earthquake) {
+        ArrayList<Earthquake> current;
+        if (this.monitoringStations.get(monitoringStation) == null) {
+            current = new ArrayList<Earthquake>();
+            current.add(earthquake);
+        } else {
+            current = this.monitoringStations.get(monitoringStation);
+            current.add(earthquake);
+        }
+        monitoringStations.put(monitoringStation, current);
+        //this.monitoringStations.putIfAbsent(monitoringStation, current);
+        System.out.println();
         /*
         Issue:
         https://stackoverflow.com/questions/21600344/java-hashmap-containskey-returns-false-for-existing-object
@@ -132,29 +139,46 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
         System.out.println("INPUTTED MONITORING STATION: " + monitoringStation + "Contains keyL " + monitoringStations.containsKey(monitoringStations));
          */
 
+        /*
         try {
-            if (monitoringStations.size() < 1) {
-                monitoringStations.put(monitoringStation, new ArrayList<Earthquake>());
-                this.monitoringStations.get(monitoringStation).add(earthquake);
+            if (this.monitoringStations.size() < 1) {
+                this.monitoringStations.put(monitoringStation, new ArrayList<Earthquake>());
+                //this.monitoringStations.get(monitoringStation).add(earthquake);
+                ArrayList<Earthquake> current = this.monitoringStations.get(monitoringStation);
+                current.add(earthquake);
+                this.monitoringStations.put(monitoringStation, current);
+                return;
             }
             for (String key : monitoringStations.keySet()) {
                 System.out.println(monitoringStations.get(key));
                 if (key == monitoringStation) {
-                    this.monitoringStations.get(monitoringStation).add(earthquake);
+                    /*
+                    Are these lines doing what I think they're doing?
+                    Essentially I think the issue is the previous array is being overwritten when adding to the location multiple times
+                     *
+                    ArrayList<Earthquake> current = this.monitoringStations.get(monitoringStation);
+                    current.add(earthquake);
+                    this.monitoringStations.put(monitoringStation, current);
+               //     this.monitoringStations.get(monitoringStation).add(earthquake);
                     System.out.println("TRUE: " + monitoringStation + " == " + key);
+                    return;
                 } else {
-                    monitoringStations.put(monitoringStation, new ArrayList<Earthquake>());
-                    this.monitoringStations.get(monitoringStation).add(earthquake);
+                 //   monitoringStations.put(monitoringStation, new ArrayList<Earthquake>());
+//                    this.monitoringStations.get(monitoringStation).add(earthquake);
+                    ArrayList<Earthquake> current = new ArrayList(); // this.monitoringStations.get(monitoringStation);
+                    current.add(earthquake);
+                    this.monitoringStations.put(monitoringStation, current);
                 }
             }
         } catch (ConcurrentModificationException e) {
             System.out.println(e);
         }
-
+         */
     }
 
     public ArrayList getAllEarthquakesFromMonitoringStation(String monitoringStation) {
         if (this.monitoringStations.containsKey(monitoringStation)) {
+            System.out.println("LEN: "+this.monitoringStations.get(monitoringStation));
             return this.monitoringStations.get(monitoringStation);
         } else {
             return new ArrayList();
@@ -321,8 +345,7 @@ public class MainActivity extends ListActivity implements OnClickListener
                         Bug; rather than adding a new earthquake with the same location, this code, or the MonitoringStationsManager.add method
                         appears to simply be duplicated either the earthquake item, retrieving the same item twice, or duplicating the list view element
                          */
-                    ArrayList<Earthquake> earthquakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation("SOUTHERNTURKEY"); // maybe this method just don't work :| (though the method maybe inconsistent - though I'm not convinced thats because the data is volatile but rather the code itself needs improvement )
-                    System.out.println("Earthquake size: " + earthquakes.size());
+                    ArrayList<Earthquake> earthquakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation("KERMADECISLANDS"); // maybe this method just don't work :| (though the method maybe inconsistent - though I'm not convinced thats because the data is volatile but rather the code itself needs improvement )
                     for (int i = 0; i < earthquakes.size(); i++) {
                         String title = earthquakes.get(i).title;
                         // the following lin eoutputs "null  null"
@@ -766,7 +789,6 @@ public class MainActivity extends ListActivity implements OnClickListener
                                 String[] details = xpp.nextText().split(";");
                                 String location = details[1].replace(" Location: ", "");
                                 widget.location = location.replaceAll(" ", ""); // should really replace whitespace first
-                                System.out.println(widget.location);
                                 String[] magAsStr = details[details.length - 1].split(": ");
                                 //try {
                                 double magAsDbl = Double.valueOf(magAsStr[magAsStr.length - 1]);
@@ -783,10 +805,9 @@ public class MainActivity extends ListActivity implements OnClickListener
                         }
                     } else if (eventType == XmlPullParser.END_TAG) {
                         if (xpp.getName().equalsIgnoreCase("item")) {
-                            Log.e("MyTag", "widget is " + widget.toString() );
-                            System.out.println("Adding earthquake: " + widget.location);
                             //alist.add(widget);
                             monitoringStationsManager.add(widget.location, widget);
+                            System.out.println("Adding earthquake: " + widget.location);
                         }
                     }
 

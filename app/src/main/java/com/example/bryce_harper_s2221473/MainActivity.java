@@ -24,6 +24,7 @@ import android.util.Log;
 import android.util.Xml;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ExpandableListView;
@@ -58,6 +59,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 // import gcu.mpd.bgsdatastarter.R;
 
@@ -138,6 +141,9 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
     public ArrayList<Earthquake> getAllEarthquakesByIndex(int index) {
         return this.monitoringStations.get(index);
     }
+    public Map<String, ArrayList<Earthquake>> getMonitoringStations() {
+        return this.monitoringStations;
+    }
 }
 
 // todo: convert the list portion of the app to a fragment
@@ -165,9 +171,6 @@ public class MainActivity extends ListActivity implements OnClickListener
         monitoringStationsManager = new MonitoringStationsManager();
         adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
         setListAdapter(adapter);
-
-        Intent myIntent = new Intent(this, MapsActivity.class);
-        startActivity(myIntent);
     }
 
     public void onClick(View aview)
@@ -237,12 +240,32 @@ public class MainActivity extends ListActivity implements OnClickListener
             MainActivity.this.runOnUiThread(new Runnable() {
                 public void run() {
                     parseData(result);
-                    ArrayList<Earthquake> earthquakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation("KERMADECISLANDS"); // maybe this method just don't work :| (though the method maybe inconsistent - though I'm not convinced thats because the data is volatile but rather the code itself needs improvement )
+                    /*
+                    ArrayList<Earthquake> earthquakesKI = monitoringStationsManager.getAllEarthquakesFromMonitoringStation("KERMADECISLANDS"); // maybe this method just don't work :| (though the method maybe inconsistent - though I'm not convinced thats because the data is volatile but rather the code itself needs improvement )
+                    ArrayList<Earthquake> earthquakesST = monitoringStationsManager.getAllEarthquakesFromMonitoringStation("SOUTHERNTURKEY"); // maybe this method just don't work :| (though the method maybe inconsistent - though I'm not convinced thats because the data is volatile but rather the code itself needs improvement )
+                    ArrayList<Earthquake> earthquakes = new ArrayList();
+                    earthquakes.addAll(earthquakesST);
+                    earthquakes.addAll(earthquakesKI);
+                    */
+                    ArrayList<Earthquake> earthquakes = new ArrayList<Earthquake>();
+                    for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
+                        System.out.println( key );
+                        ArrayList<Earthquake> quakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(key);
+                        earthquakes.addAll(quakes);
+                    }
                     for (int i = 0; i < earthquakes.size(); i++) {
                         String title = earthquakes.get(i).title;
                         listItems.add(earthquakes.get(i).title + " - Location: " + earthquakes.get(i).location);
                     }
                     adapter.notifyDataSetChanged();
+                    ListView lv = findViewById(android.R.id.list);
+                    lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+                        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                            // todo: swap to map activity & initiate fly to
+                            System.out.println("LOC: " + earthquakes.get(position).location);
+                        }
+                    });
                 }
             });
         }

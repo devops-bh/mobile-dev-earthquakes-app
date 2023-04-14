@@ -4,6 +4,11 @@
     <Button android:id="@+id/startButton" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Press to get data"/>
     <TextView android:id="@+id/acknowledgement" android:layout_width="fill_parent" android:layout_height="wrap_content" android:textSize="20sp" android:text="Contains British Geological Survey materials ©NERC 2019"/>
     <TextView android:id="@+id/rawDataDisplay" android:layout_width="fill_parent" android:layout_height="wrap_content" android:textSize="20sp" android:text="Raw Data is Displayed here"/>
+    <!-- There may be a search view but I'm more familliar with EditText -->
+    <EditText
+        android:id="@+id/searchView" android:layout_width="fill_parent" android:layout_height="wrap_content"
+        />
+
 
     <Spinner  android:layout_height="64px" android:layout_width="fill_parent"
         android:id="@+id/spinner"

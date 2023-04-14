@@ -20,12 +20,14 @@ import android.app.ListActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -221,6 +223,43 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                datePicker.show(getSupportFragmentManager(), "date picker");
            }
        });
+
+        EditText searchView = findViewById(R.id.searchView);
+        searchView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                /*
+                genuinely not sure how performant this is likely to be
+                but I'm also hoping that its able to find the recycler view items
+                which aren't technically in memroy
+                 */
+                /*
+                note: the emulator will not display characters typed using the real keyboard
+                [And might even crash the app :|] (possibly because I was stupidly typing when there was no earthquake data)
+                but will display the characters typed using the emulated keyboard
+                (hopefully this isn't a major issue)
+                 */
+                /*
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    //do something here
+                    System.out.println("typing");
+                    System.out.println("Search View: "+ searchView.getText().toString());
+                    System.out.println("Search View 2: "+ searchView.getText());
+                    for (int i = 0; i < earthquakes.size(); i++) {
+                        //char unicodeChar = (char)event.getUnicodeChar();
+                        System.out.println("Search View: "+ searchView.getText());
+                        if (earthquakes.get(i).location.toLowerCase().contains(searchView.getText())) {
+                            earthquakes.remove(i);
+                            earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+                        }
+                    }
+                    return true;
+                }
+                return false;
+
+            }
+                 */
+        });
     }
 
     @Override

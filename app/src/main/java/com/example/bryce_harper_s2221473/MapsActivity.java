@@ -10,6 +10,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.bryce_harper_s2221473.databinding.ActivityMapsBinding;
@@ -49,16 +50,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (extras != null) {
             Float lat = extras.getFloat("lat");
             Float _long = extras.getFloat("long");
+            Double magnitude = extras.getDouble("magnitude");
             String monitoringStation = extras.getString("monitoringStation");
             //The key argument here must match that used in the other activity
             System.out.println("FROM MAIN: " + lat + " Long: " + _long);
 //        LatLng sydney2 = new LatLng(lat, _long);
             LatLng coordinate = new LatLng(lat, _long); //Store these lat lng values somewhere. These should be constant.
             mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinate));
-            mMap.addMarker(new MarkerOptions().position(coordinate).title("Marker in " + monitoringStation));
+            MarkerOptions markerOptions = new MarkerOptions().position(coordinate).title("Marker in " + monitoringStation)
+                    .snippet(monitoringStation + ";" + magnitude + ";"+lat + ";"+_long);
+            if (Math.floor(magnitude) > 6) {
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
+            } else {
+                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+            }
+            Earthquake markerEarthquake = new Earthquake();
+            markerEarthquake.lat = lat;
+            markerEarthquake.lng = _long;
+            markerEarthquake.magnitude = magnitude;
+            mMap.addMarker(markerOptions).setTag(magnitude+";"+lat+";"+_long+";"+monitoringStation+";");
             CameraUpdate location = CameraUpdateFactory.newLatLng(coordinate);
             // note: this appears to be instant, I originally assumed the Google Maps SDK had an equivalent of Mapbox's FlyTo method
             mMap.animateCamera(location, 5000, null);
+            mMap.setInfoWindowAdapter(new EarthquakeInfoWindowAdapter(MapsActivity.this));
         }
         /*
         // Add a marker in Sydney and move the camera

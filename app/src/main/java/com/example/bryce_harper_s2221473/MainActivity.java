@@ -17,31 +17,19 @@ package com.example.bryce_harper_s2221473;
 // import android.support.v7.app.AppCompatActivity;
 import android.app.ListActivity;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
-import android.util.Xml;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.TextView;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearSnapHelper;
-
-import com.google.android.gms.maps.model.LatLng;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -49,20 +37,10 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.StringReader;
-import java.security.Key;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 // import gcu.mpd.bgsdatastarter.R;
 
@@ -75,7 +53,7 @@ class Earthquake { // this may actually become an interface
     public String category;
     public float lat;
     public float lng;
-    public double magnittude; // maybe have a "getAsDouble" & a "getAsString" method?
+    public double magnitude; // maybe have a "getAsDouble" & a "getAsString" method?
     public String location;
     public Earthquake() {
 
@@ -98,13 +76,13 @@ class Earthquake { // this may actually become an interface
         // not confirmed to work, I'm curioous if the "null" in the XML string is somehow affecting this?
         try { // the above parsing logic appears to be wrong so this is just a quick fix
             double magAsDbl = Double.valueOf(magAsStr[magAsStr.length-1]);
-            this.magnittude = magAsDbl;
+            this.magnitude = magAsDbl;
         } catch(NumberFormatException e) { // use a more specialised catchable error type
             System.out.println("ERROR CAUGHT: ");
             System.out.println(e);
         }
         // do something similar to get the depth etc
-        System.out.println("Mag " + this.magnittude);
+        System.out.println("Mag " + this.magnitude);
     }
 
 }
@@ -270,6 +248,7 @@ public class MainActivity extends ListActivity implements OnClickListener
                             i.putExtra("lat", earthquakes.get(position).lat);
                             i.putExtra("long", earthquakes.get(position).lng);
                             i.putExtra("monitoringStation", earthquakes.get(position).location);
+                            i.putExtra("magnitude", earthquakes.get(position).magnitude);
                             startActivity(i);
 
                         }
@@ -316,13 +295,16 @@ public class MainActivity extends ListActivity implements OnClickListener
                                 //try {
                                 double magAsDbl = Double.valueOf(magAsStr[magAsStr.length - 1]);
                                 double magnittude = magAsDbl;
-                                widget.magnittude = magnittude;
+                                widget.magnitude = magnittude;
                                 break;
                             case "lat":
                                 widget.lat = Float.valueOf(xpp.nextText());
                                 break;
                             case "long":
                                 widget.lng = Float.valueOf(xpp.nextText());
+                                break;
+                            case "magnitude":
+                                widget.magnitude = Double.valueOf(xpp.nextText());
                                 break;
                             // etc
                         }

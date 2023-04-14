@@ -25,6 +25,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -42,6 +43,8 @@ import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -144,6 +147,8 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
     ArrayAdapter<String> adapter;
     RecyclerView recyclerView;
     ArrayList<String> listItems = new ArrayList<String>();
+    EarthquakesRecyclerViewAdapter earthquakesRecyclerViewAdapter;
+    ArrayList<Earthquake> earthquakes;
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
@@ -156,6 +161,46 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         monitoringStationsManager = new MonitoringStationsManager();
         //adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
         //setListAdapter(adapter);
+
+
+        Spinner spinner = (Spinner) findViewById(R.id.spinner);
+// Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(this,
+                R.array.magnitude_sort_array, android.R.layout.simple_spinner_item);
+// Specify the layout to use when the list of choices appears
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+// Apply the adapter to the spinner
+        spinner.setAdapter(spinnerAdapter);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
+                if (earthquakesRecyclerViewAdapter != null) {
+                        Collections.sort(earthquakes, new Comparator<Earthquake>() {
+                            @Override
+                            public int compare(Earthquake quakeA, Earthquake quakeB) {
+                                if (position >= 1) {
+                                    return Double.valueOf(quakeA.magnitude).compareTo(quakeB.magnitude);
+                                } else {
+                                    return Double.valueOf(quakeB.magnitude).compareTo(quakeA.magnitude);
+                                }
+                            }
+                        });
+                    earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                Collections.sort(earthquakes, new Comparator<Earthquake>() {
+                    @Override
+                    public int compare(Earthquake quakeA, Earthquake quakeB) {
+                        return Double.valueOf(quakeA.magnitude).compareTo(quakeB.magnitude);
+                    }
+                });
+                if (earthquakesRecyclerViewAdapter != null) {
+                    earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+                }
+        }});
     }
 
     public void onClick(View aview)
@@ -261,14 +306,14 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                      */
 
                     // maybe replace linear layout manager with StaggeredGridLayoutManager
-                    ArrayList<Earthquake> earthquakes = new ArrayList<Earthquake>();
+                    earthquakes = new ArrayList<Earthquake>();
                     for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
                         System.out.println( key );
                         ArrayList<Earthquake> quakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(key);
                         earthquakes.addAll(quakes);
                     }
                     RecyclerView recyclerView = findViewById(R.id.recyclerView);
-                    EarthquakesRecyclerViewAdapter earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
+                    earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
                     recyclerView.setAdapter(earthquakesRecyclerViewAdapter);
                     recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
 

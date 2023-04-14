@@ -36,6 +36,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearSnapHelper;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -264,6 +266,12 @@ public class MainActivity extends ListActivity implements OnClickListener
                         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                             // todo: swap to map activity & initiate fly to
                             System.out.println("LOC: " + earthquakes.get(position).location);
+                            Intent i = new Intent(MainActivity.this, MapsActivity.class);
+                            i.putExtra("lat", earthquakes.get(position).lat);
+                            i.putExtra("long", earthquakes.get(position).lng);
+                            i.putExtra("monitoringStation", earthquakes.get(position).location);
+                            startActivity(i);
+
                         }
                     });
                 }
@@ -314,7 +322,7 @@ public class MainActivity extends ListActivity implements OnClickListener
                                 widget.lat = Float.valueOf(xpp.nextText());
                                 break;
                             case "long":
-                                //widget.long = Float.valueOf(xpp.nextText());
+                                widget.lng = Float.valueOf(xpp.nextText());
                                 break;
                             // etc
                         }

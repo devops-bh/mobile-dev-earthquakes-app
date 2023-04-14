@@ -10,6 +10,13 @@
         android:entries="@array/magnitude_sort_array"
         android:background="@color/purple_200"
         />
+
+    <Button
+        android:id="@+id/date_picker_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Date"
+        />
     <!--
     <ListView
         android:id="@android:id/list"

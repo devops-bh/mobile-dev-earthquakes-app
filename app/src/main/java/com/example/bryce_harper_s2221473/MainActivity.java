@@ -15,6 +15,7 @@ package com.example.bryce_harper_s2221473;
 // package gcu.mpd.bgsdatastarter;
 
 // import android.support.v7.app.AppCompatActivity;
+import android.app.DatePickerDialog;
 import android.app.ListActivity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -24,11 +25,13 @@ import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -42,10 +45,17 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.StringReader;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -134,7 +144,7 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
 }
 
 // todo: convert the list portion of the app to a fragment
-public class MainActivity extends AppCompatActivity /* extends ListActivity */ implements OnClickListener
+public class MainActivity extends AppCompatActivity /* extends ListActivity */ implements OnClickListener, DatePickerDialog.OnDateSetListener
 {
     private TextView rawDataDisplay;
     private Button startButton;
@@ -191,6 +201,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
 
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {
+                // doesn't work as expected but oh well
                 Collections.sort(earthquakes, new Comparator<Earthquake>() {
                     @Override
                     public int compare(Earthquake quakeA, Earthquake quakeB) {
@@ -201,6 +212,55 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                     earthquakesRecyclerViewAdapter.notifyDataSetChanged();
                 }
         }});
+
+       Button openDatePickerButton = (Button) findViewById(R.id.date_picker_button);
+       openDatePickerButton.setOnClickListener(new View.OnClickListener() {
+           @Override
+           public void onClick(View v) {
+               DialogFragment datePicker = new DatePickerFragment();
+               datePicker.show(getSupportFragmentManager(), "date picker");
+           }
+       });
+    }
+
+    @Override
+    public void onDateSet(DatePicker view, int year, int month, int day) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.YEAR, year);
+        calendar.set(Calendar.MONTH, month);
+        calendar.set(Calendar.DAY_OF_MONTH, day);
+        // todo: update recycler adapter with earthquake with corrosponding date
+        // remember to convert the dates to UNIX timestamps
+        // refactor this using a lambda for a more functional-esque approach
+        String selectedDate = DateFormat.getDateInstance().format(calendar.getTime());
+
+        for (int i = 0; i < earthquakes.size(); i++) {
+            /* if I wanted to get a date range, I believe i could convert the
+            currentDate & the pubDate to a unix timestamp which makes
+            comparing them easier
+            */
+            /*
+            System.out.println("Dates: " + earthquakes.get(i).pubDate + " == " + selectedDate);
+
+            try {
+                DateFormat formatter = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
+                // you can change format of date
+                Date earthquakeDate = formatter.parse(earthquakes.get(i).pubDate);
+                Date userSelectedDate = formatter.parse(selectedDate);
+                Timestamp timeStampDateA = new Timestamp(earthquakeDate.getTime());
+                Timestamp timeStampDateB = new Timestamp(userSelectedDate.getTime());
+                System.out.println("TIMESTAMP: " + timeStampDateA + " vs " + timeStampDateB);
+            } catch (ParseException e) {
+                System.out.println("Exception :" + e);
+            }
+             */
+            String quakeDate = earthquakes.get(i).pubDate.substring(4, 16);
+            if (quakeDate != selectedDate) {
+                earthquakes.remove(i);
+                earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+            }
+            System.out.println("QD: " + quakeDate);
+        }
     }
 
     public void onClick(View aview)
@@ -369,6 +429,9 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                                 break;
                             case "magnitude":
                                 widget.magnitude = Double.valueOf(xpp.nextText());
+                                break;
+                            case "pubdate":
+                                widget.pubDate = xpp.nextText();
                                 break;
                             // etc
                         }

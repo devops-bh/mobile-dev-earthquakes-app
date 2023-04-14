@@ -43,7 +43,7 @@ public class EarthquakeInfoWindowAdapter implements GoogleMap.InfoWindowAdapter 
         Double magnitude = Double.valueOf(markerEarthquakeTag.split(";")[0]);
         System.out.println(markerEarthquakeTag);
         System.out.println(magnitude.toString());
-        if (Math.floor(magnitude) > 6) {
+        if (Math.floor(magnitude) >= 6) {
             magnitudeTextView.setTextColor(Color.WHITE);
             magnitudeTextView.setBackgroundColor(Color.RED);
             magnitudeTextView.setText(magnitude.toString());

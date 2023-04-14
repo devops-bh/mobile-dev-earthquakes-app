@@ -45,7 +45,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        mMap.setMinZoomPreference(6.0f);
+        mMap.setMaxZoomPreference(12.0f);
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             Float lat = extras.getFloat("lat");
@@ -59,7 +59,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.moveCamera(CameraUpdateFactory.newLatLng(coordinate));
             MarkerOptions markerOptions = new MarkerOptions().position(coordinate).title("Marker in " + monitoringStation)
                     .snippet(monitoringStation + ";" + magnitude + ";"+lat + ";"+_long);
-            if (Math.floor(magnitude) > 6) {
+            if (Math.floor(magnitude) >= 6) {
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
             } else {
                 markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));

@@ -27,6 +27,10 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -127,7 +131,7 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
 }
 
 // todo: convert the list portion of the app to a fragment
-public class MainActivity extends ListActivity implements OnClickListener
+public class MainActivity extends AppCompatActivity /* extends ListActivity */ implements OnClickListener
 {
     private TextView rawDataDisplay;
     private Button startButton;
@@ -138,6 +142,7 @@ public class MainActivity extends ListActivity implements OnClickListener
     private String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
     MonitoringStationsManager monitoringStationsManager;
     ArrayAdapter<String> adapter;
+    RecyclerView recyclerView;
     ArrayList<String> listItems = new ArrayList<String>();
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -149,8 +154,8 @@ public class MainActivity extends ListActivity implements OnClickListener
         startButton.setOnClickListener(this);
 
         monitoringStationsManager = new MonitoringStationsManager();
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
-        setListAdapter(adapter);
+        //adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
+        //setListAdapter(adapter);
     }
 
     public void onClick(View aview)
@@ -227,6 +232,7 @@ public class MainActivity extends ListActivity implements OnClickListener
                     earthquakes.addAll(earthquakesST);
                     earthquakes.addAll(earthquakesKI);
                     */
+                    /*
                     ArrayList<Earthquake> earthquakes = new ArrayList<Earthquake>();
                     for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
                         System.out.println( key );
@@ -242,7 +248,6 @@ public class MainActivity extends ListActivity implements OnClickListener
                     lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
                         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                            // todo: swap to map activity & initiate fly to
                             System.out.println("LOC: " + earthquakes.get(position).location);
                             Intent i = new Intent(MainActivity.this, MapsActivity.class);
                             i.putExtra("lat", earthquakes.get(position).lat);
@@ -253,6 +258,20 @@ public class MainActivity extends ListActivity implements OnClickListener
 
                         }
                     });
+                     */
+
+                    // maybe replace linear layout manager with StaggeredGridLayoutManager
+                    ArrayList<Earthquake> earthquakes = new ArrayList<Earthquake>();
+                    for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
+                        System.out.println( key );
+                        ArrayList<Earthquake> quakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(key);
+                        earthquakes.addAll(quakes);
+                    }
+                    RecyclerView recyclerView = findViewById(R.id.recyclerView);
+                    EarthquakesRecyclerViewAdapter earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
+                    recyclerView.setAdapter(earthquakesRecyclerViewAdapter);
+                    recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+
                 }
             });
         }

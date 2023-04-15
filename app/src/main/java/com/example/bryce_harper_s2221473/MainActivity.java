@@ -22,6 +22,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -36,6 +38,7 @@ import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -69,7 +72,7 @@ import java.util.concurrent.ConcurrentHashMap;
 // import gcu.mpd.bgsdatastarter.R;
 
 /// Earthquake Model
-class Earthquake { // this may actually become an interface
+class Earthquake implements Parcelable { // this may actually become an interface
     // title & description contain more data & thus I'll need to parse them using the ";" as the separator
     public String title;
     public String description;
@@ -109,7 +112,50 @@ class Earthquake { // this may actually become an interface
         // do something similar to get the depth etc
         System.out.println("Mag " + this.magnitude);
     }
+    public Earthquake(Parcel in) {
+        String[] data = new String[3];
 
+        in.readStringArray(data);
+        // the order needs to be the same as in writeToParcel() method
+        this.title = data[0];
+        this.description = data[1];
+        this.link = data[2];
+        this.pubDate = data[3];
+        this.category = data[4];
+        this.lat = Float.valueOf(data[5]);
+        this.lng = Float.valueOf(data[6]);
+        this.magnitude = Double.valueOf(data[7]);
+        this.location = data[8];
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeStringArray(new String[] {
+                this.title ,
+                this.description ,
+                this.link ,
+                this.pubDate ,
+                this.category ,
+                Float.toString(this.lat) ,
+                Float.toString(this.lng) ,
+                Double.toString(this.magnitude),
+                this.location
+        });
+    }
+    public static final Parcelable.Creator CREATOR = new Parcelable.Creator() {
+        public Earthquake createFromParcel(Parcel in) {
+            return new Earthquake(in);
+        }
+
+        public Earthquake[] newArray(int size) {
+            return new Earthquake[size];
+        }
+    };
 }
 
 
@@ -373,12 +419,25 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
 
         earthquakes = new ArrayList<Earthquake>();
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        if (savedInstanceState != null) {
+            //earthquakes = savedInstanceState.getParcelableArrayList("earthquakes");
+            System.out.println("NUM OF QUAKES: " + savedInstanceState.getString("earthquakes_count"));
+            int earthquakes_count = Integer.valueOf(savedInstanceState.getString("earthquakes_count"));
+            for (int i = 0; i < earthquakes_count; i++) {
+                //earthquakes.add(savedInstanceState.getParcelable("earthquake"+Integer.toString(i)));
+                Earthquake earthquake = savedInstanceState.getParcelable("earthquake"+Integer.toString(i));
+                System.out.println("EARTHQUAKE IN: "+ savedInstanceState.getParcelable("earthquake"+Integer.toString(i)));
+                earthquakes.add(earthquake);
+                // I mean, technically I could just store the state earthquakes as a giant XML string similar to what we originally done?
+                // maybe rebuild the monitoringStations too? which honestly should just be passed to the adapter ?
+            }
+            Log.d("Orientation", "loaded earthquakes from state");
+        }
         earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
         recyclerView.setAdapter(earthquakesRecyclerViewAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
         // should look better when the UI is finished; otherwise resort to the linear vertical layout
         //recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL));
-
 
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
 // Create an ArrayAdapter using the string array and a default spinner layout
@@ -428,6 +487,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                datePicker.show(getSupportFragmentManager(), "date picker");
            }
        });
+
        /*
 
         EditText searchView = findViewById(R.id.searchView);
@@ -469,6 +529,20 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
     }
                  */
     }
+
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        //outState.putStringArrayList();
+        // outState.putBundle("earthquakes", earthquakes);
+        // outState.putParcelableArrayList("earthquakes", (ArrayList<? extends Parcelable>) earthquakes);
+        for (int i = 0; i < earthquakes.size(); i++) {
+            outState.putParcelable("earthquake" + i, earthquakes.get(i));
+        }
+        outState.putString("earthquakes_count", Integer.toString(earthquakes.size()));
+    }
+
     @Override
     public void onDateSet(DatePicker view, int year, int month, int day) {
         Calendar calendar = Calendar.getInstance();
@@ -522,6 +596,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                 earthquakes.addAll(quakes);
             }
             earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+
         } catch (Exception e) {
             Log.e("EarthquakeRepository", e.getLocalizedMessage());
             // display toast saying "data unavailible"

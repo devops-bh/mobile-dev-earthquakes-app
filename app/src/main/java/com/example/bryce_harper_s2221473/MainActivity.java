@@ -223,6 +223,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                datePicker.show(getSupportFragmentManager(), "date picker");
            }
        });
+       /*
 
         EditText searchView = findViewById(R.id.searchView);
         searchView.setOnKeyListener(new View.OnKeyListener() {
@@ -258,10 +259,11 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                 return false;
 
             }
-                 */
-        });
+                }
+            });
     }
-
+                 */
+            }
     @Override
     public void onDateSet(DatePicker view, int year, int month, int day) {
         Calendar calendar = Calendar.getInstance();

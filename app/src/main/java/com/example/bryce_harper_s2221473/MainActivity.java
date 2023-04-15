@@ -31,6 +31,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -39,6 +40,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -374,6 +376,8 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
         recyclerView.setAdapter(earthquakesRecyclerViewAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+        // should look better when the UI is finished; otherwise resort to the linear vertical layout
+        //recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL));
 
 
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
@@ -509,6 +513,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
     {
         // startProgress();
         try {
+            // this was inspired by futures, or more specifically const data = await getData(); in JS, but... um...
             this.monitoringStationsManager = earthquakeRepository.getEarthquakes();
             // alt
             for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {

@@ -19,6 +19,9 @@ import android.app.DatePickerDialog;
 import android.app.ListActivity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -63,6 +66,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 // import gcu.mpd.bgsdatastarter.R;
 
+/// Earthquake Model
 class Earthquake { // this may actually become an interface
     // title & description contain more data & thus I'll need to parse them using the ";" as the separator
     public String title;
@@ -145,6 +149,194 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
     }
 }
 
+// I guess this is could be a singleton; I guess technically the MonitoringStationManager is a repository too?
+class EarthquakeRepository {
+    private HandlerThread handlerThread;
+    MonitoringStationsManager monitoringStationsManager; // this is really just a wrapper around ConcurrentHashMap because I didn't understand hash maps well enough
+    public EarthquakeRepository() {
+        monitoringStationsManager = new MonitoringStationsManager();
+    }
+    /*
+        this will initiate the asynchronous request to the earthquake data source
+        I'm not a fan of this code, but its ok for now; I'd definitely try to refactor this
+        in a long lived app
+        I decided to use the init method rather than doing this in the constructor
+        to be explicit that there's hidden complexity (which the dev needs to be somewhat concerned about)
+    */
+    public void init() {
+        this._setMonitoringStations();
+    }
+    // there's a comment further down which really should be here
+    public MonitoringStationsManager getEarthquakes() throws Exception {
+        if (this.monitoringStationsManager != null) {
+            return this.monitoringStationsManager;
+        }
+        // I really hate that I'm forcing the use of try-catch
+        // https://stackoverflow.com/a/2737554
+        throw new Exception("EarthquakeRepositories.monitoringStationsManager is null");
+    }
+    //public ArrayList<Earthquake> getEarthquakes() {
+    public MonitoringStationsManager requestEarthquakes() {
+        return null;
+    }
+
+    // this could probably be renamed to something better
+    private void _setMonitoringStations() {
+        /*
+        there might be some confusion about the use of monitoringStations here (the naming) here...
+        Essentially I wrote the app with the use of the MonitoringStations (which we now know is a
+        wrapper around concurrent map)
+        e.g. the developer asked for earthquakes but got monitoring stations back, wtf?
+        But rather than type MonitoringStations, I'd rather be more (or less?) vague about how
+        the quakes are structured
+        if this was a long lived app then I'd likely refactor this to make sense to others
+         */
+        HandlerThread handlerThread = new HandlerThread("MyHandlerThread");
+        handlerThread.start();
+        Handler asyncHandler = new Handler(handlerThread.getLooper()) {
+            // we don't need to send the message
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                Object response = msg.obj;
+
+            }
+        };
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run()
+            {
+                // your async code goes here.
+                Log.e("MyTg","In asynctaskrun");
+
+                // create message and pass any object here doesn't matter
+                // for a simple example I have used a simple string
+                Message message = new Message();
+                String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
+                String earthquakesXMLString = getEarthquakesAsStringAsync(urlSource);
+                parseEarthquakesString(earthquakesXMLString);
+                message.obj = monitoringStationsManager; // monitoringStationsManager.monitoringStations;
+               // asyncHandler.sendMessage(message);
+            }
+        };
+        asyncHandler.post(runnable);
+    }
+
+    private String getEarthquakesAsStringAsync(String url) {
+        URL aurl;
+        URLConnection yc;
+        BufferedReader in = null;
+        String inputLine = "";
+        String result = "";
+        try {
+            Log.e("MyTag", "in try");
+            aurl = new URL(url);
+            yc = aurl.openConnection();
+            in = new BufferedReader(new InputStreamReader(yc.getInputStream()));
+            in.readLine().replaceAll("<?xml version=\"1.0\"?>", "");//.trim(); // not sure if I need trim
+            // the following lines may be cause the app to crash
+            in.readLine().replaceAll("<rss version=\"2.0\" xmlns:geo=\"http://www.w3.org/2003/01/geo/wgs84_pos#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\">", "");//.trim();
+            in.readLine().replaceAll("</rss>", ""); //.trim();
+
+            boolean canParse = false;
+            while ((inputLine = in.readLine()) != null) {
+                if (/*!inputLine.contains("geo") &&*/ !inputLine.contains("<rss version") && !inputLine.contains("</rss>") && !inputLine.contains("<?xml version") && !inputLine.contains("</xml>")) {
+                    if (inputLine.contains("<item>")) {
+                        canParse = true;
+                    }
+                    if (canParse) {
+                        if (inputLine.contains("geo:")) {
+                            result += inputLine.replaceAll("geo:","");
+                        }else{
+                            result += inputLine;
+                        }
+                    }
+                    if (inputLine.contains("</item>")) {
+                        canParse = false;
+                    }
+                }
+            }
+            in.close();
+        } catch (IOException ae) {
+            Log.e("MyTag", "ioexception");
+        }
+        return result;
+    }
+    private void parseEarthquakesString(String earthquakesString) {
+        Earthquake widget = null;
+        try {
+            XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
+            factory.setNamespaceAware(true);
+            XmlPullParser xpp = factory.newPullParser();
+            xpp.setInput(new StringReader(earthquakesString));
+            int eventType = xpp.getEventType();
+            while (eventType != XmlPullParser.END_DOCUMENT) {
+                // Found a start tag
+                if (eventType == XmlPullParser.START_TAG) {
+                        /*
+                        if (xpp.getName().equalsIgnoreCase("item")) {
+                            widget = new Earthquake();
+                        } else if (xpp.getName().equalsIgnoreCase("title")) {
+                            // Now just get the associated text
+                            String temp = xpp.nextText();
+                            // Do something with text
+                            Log.e("MyTag", "Bolt is " + temp + xpp.getName());
+                            widget.title = temp;
+                        }
+                         */
+                    switch (xpp.getName().toLowerCase()) {
+                        case "item":
+                            widget = new Earthquake();
+                            break;
+                        case "title":
+                            widget.title = xpp.nextText();
+                            break;
+                        case "description":
+                            String[] details = xpp.nextText().split(";");
+                            String location = details[1].replace(" Location: ", "");
+                            widget.location = location.replaceAll(" ", ""); // should really replace whitespace first
+                            String[] magAsStr = details[details.length - 1].split(": ");
+                            //try {
+                            double magAsDbl = Double.valueOf(magAsStr[magAsStr.length - 1]);
+                            double magnittude = magAsDbl;
+                            widget.magnitude = magnittude;
+                            break;
+                        case "lat":
+                            widget.lat = Float.valueOf(xpp.nextText());
+                            break;
+                        case "long":
+                            widget.lng = Float.valueOf(xpp.nextText());
+                            break;
+                        case "magnitude":
+                            widget.magnitude = Double.valueOf(xpp.nextText());
+                            break;
+                        case "pubdate":
+                            widget.pubDate = xpp.nextText();
+                            break;
+                        // etc
+                    }
+                } else if (eventType == XmlPullParser.END_TAG) {
+                    if (xpp.getName().equalsIgnoreCase("item")) {
+                        //alist.add(widget);
+                        monitoringStationsManager.add(widget.location, widget);
+                        System.out.println("Adding earthquake: " + widget.location);
+                    }
+                }
+                // Get the next event
+                eventType = xpp.next();
+            } // End of while
+
+            //return alist;
+        } catch (XmlPullParserException ae1) {
+            Log.e("MyTag", "Parsing error" + ae1.toString());
+        } catch (IOException ae1) {
+            Log.e("MyTag", "IO error during parsing");
+        }
+
+        Log.d("MyTag", "End document");
+    }
+}
+
 // todo: convert the list portion of the app to a fragment
 public class MainActivity extends AppCompatActivity /* extends ListActivity */ implements OnClickListener, DatePickerDialog.OnDateSetListener
 {
@@ -155,6 +347,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
     private String url1="";
     //private String urlSource="http://quakes.bgs.ac.uk/feeds/MhSeismology.xml";
     private String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
+    EarthquakeRepository earthquakeRepository;
     MonitoringStationsManager monitoringStationsManager;
     ArrayAdapter<String> adapter;
     RecyclerView recyclerView;
@@ -163,6 +356,8 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
     ArrayList<Earthquake> earthquakes;
     protected void onCreate(Bundle savedInstanceState)
     {
+        earthquakeRepository = new EarthquakeRepository();
+        earthquakeRepository.init();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         // Set up the raw links to the graphical components
@@ -173,6 +368,12 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         monitoringStationsManager = new MonitoringStationsManager();
         //adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
         //setListAdapter(adapter);
+
+        earthquakes = new ArrayList<Earthquake>();
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
+        recyclerView.setAdapter(earthquakesRecyclerViewAdapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
 
 
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
@@ -263,7 +464,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
             });
     }
                  */
-            }
+    }
     @Override
     public void onDateSet(DatePicker view, int year, int month, int day) {
         Calendar calendar = Calendar.getInstance();
@@ -306,7 +507,21 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
 
     public void onClick(View aview)
     {
-        startProgress();
+        // startProgress();
+        try {
+            this.monitoringStationsManager = earthquakeRepository.getEarthquakes();
+            // alt
+            for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
+                System.out.println( key );
+                ArrayList<Earthquake> quakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(key);
+                earthquakes.addAll(quakes);
+            }
+            earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+        } catch (Exception e) {
+            Log.e("EarthquakeRepository", e.getLocalizedMessage());
+            // display toast saying "data unavailible"
+            throw new RuntimeException(e);
+        }
     }
 
     public void startProgress()

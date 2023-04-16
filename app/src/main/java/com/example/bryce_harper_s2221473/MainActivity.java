@@ -42,6 +42,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -232,6 +233,18 @@ class AllEarthquakesViewModel extends Observable implements Observer {
     }
     public void getWeakestEarthquakes() {
         // todo: loop through each monitoring station's earthquakes & append the ones with the strong value to an array list
+    }
+
+    /*
+    Originally I tried to avoid (or just didn't think about) a "pull [not poll]" based system
+    But it may had been the simplest route afterall , so now I guess I'm using a hybrid approach
+    of push [push] & pull in that the Observable tells the observer there is data
+    but for the case of the onSavedInstanceState functionality, the observer [the Main Activity]
+    will instead just "pull" i.e. ask for the earthquakes (& assume it gets what it expects)
+    Also I sort of want to call this something like getEarthquakesForUI
+    */
+    public ArrayList<Earthquake> getEarthquakes() {
+        return this.UI_earthquakes;
     }
 
     public void ascending() {
@@ -563,6 +576,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
     RecyclerView recyclerView;
     ArrayList<String> listItems = new ArrayList<String>();
     EarthquakesRecyclerViewAdapter earthquakesRecyclerViewAdapter;
+    // no longer being used
     ArrayList<Earthquake> earthquakes;
     AllEarthquakesViewModel earthquakesViewModel;
     protected void onCreate(Bundle savedInstanceState)
@@ -578,11 +592,14 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         startButton = (Button)findViewById(R.id.startButton);
         startButton.setOnClickListener(this);
 
-        monitoringStationsManager = new MonitoringStationsManager();
+        earthquakesViewModel = new AllEarthquakesViewModel();
+        // maybe explain why savedInstanceState isn't being treated as an observable
+        earthquakesViewModel.setSavedInstanceState(savedInstanceState);
+        earthquakesViewModel.register(this);
+
+        //monitoringStationsManager = new MonitoringStationsManager();
         //adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
         //setListAdapter(adapter);
-
-        Spinner spinner = (Spinner) findViewById(R.id.spinner);
         /*
         [Implementing the interaction between the View-Model & the View regarding Model View View-Model]
 
@@ -628,115 +645,25 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         //recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL));
 
          */
-// Create an ArrayAdapter using the string array and a default spinner layout
-        ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(this,
-                R.array.magnitude_sort_array, android.R.layout.simple_spinner_item);
-// Specify the layout to use when the list of choices appears
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-// Apply the adapter to the spinner
-        spinner.setAdapter(spinnerAdapter);
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
-                if (earthquakesRecyclerViewAdapter != null) {
-                        Collections.sort(earthquakes, new Comparator<Earthquake>() {
-                            @Override
-                            public int compare(Earthquake quakeA, Earthquake quakeB) {
-                                if (position >= 1) {
-                                    /*
-                                     [MVVM] will return to this later , I feel like this is such little logic that
-                                     it doesn't matter whether this lies in the view or the view model
-                                     but if I decide to move it to the view model then I think I'm going to need a
-                                     MonitoringStationsManager object to manage its own earthquakes array list
-                                     which [at the moment] is difficult to grasp
-                                    */
-                                    //earthquakes = monitoringStationsManager.ascending();
-                                    return Double.valueOf(quakeA.magnitude).compareTo(quakeB.magnitude);
-                                } else {
-                                    return Double.valueOf(quakeB.magnitude).compareTo(quakeA.magnitude);
-                                }
-                            }
-                        });
-                    earthquakesRecyclerViewAdapter.notifyDataSetChanged();
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-                // doesn't work as expected but oh well
-                Collections.sort(earthquakes, new Comparator<Earthquake>() {
-                    @Override
-                    public int compare(Earthquake quakeA, Earthquake quakeB) {
-                        return Double.valueOf(quakeA.magnitude).compareTo(quakeB.magnitude);
-                    }
-                });
-                if (earthquakesRecyclerViewAdapter != null) {
-                    earthquakesRecyclerViewAdapter.notifyDataSetChanged();
-                }
-        }});
-
-       Button openDatePickerButton = (Button) findViewById(R.id.date_picker_button);
-       openDatePickerButton.setOnClickListener(new View.OnClickListener() {
-           @Override
-           public void onClick(View v) {
-               DialogFragment datePicker = new DatePickerFragment();
-               datePicker.show(getSupportFragmentManager(), "date picker");
-           }
-       });
-
-       /*
-
-        EditText searchView = findViewById(R.id.searchView);
-        searchView.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                /*
-                genuinely not sure how performant this is likely to be
-                but I'm also hoping that its able to find the recycler view items
-                which aren't technically in memroy
-                 */
-                /*
-                note: the emulator will not display characters typed using the real keyboard
-                [And might even crash the app :|] (possibly because I was stupidly typing when there was no earthquake data)
-                but will display the characters typed using the emulated keyboard
-                (hopefully this isn't a major issue)
-                 */
-                /*
-                if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    //do something here
-                    System.out.println("typing");
-                    System.out.println("Search View: "+ searchView.getText().toString());
-                    System.out.println("Search View 2: "+ searchView.getText());
-                    for (int i = 0; i < earthquakes.size(); i++) {
-                        //char unicodeChar = (char)event.getUnicodeChar();
-                        System.out.println("Search View: "+ searchView.getText());
-                        if (earthquakes.get(i).location.toLowerCase().contains(searchView.getText())) {
-                            earthquakes.remove(i);
-                            earthquakesRecyclerViewAdapter.notifyDataSetChanged();
-                        }
-                    }
-                    return true;
-                }
-                return false;
-
-            }
-                }
-            });
-    }
-                 */
-        earthquakesViewModel = new AllEarthquakesViewModel();
-        // maybe explain why savedInstanceState isn't being treated as an observable
-        earthquakesViewModel.setSavedInstanceState(savedInstanceState);
-        earthquakesViewModel.register(this);
     }
 
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
+        if (outState == null) return;
         //outState.putStringArrayList();
         // outState.putBundle("earthquakes", earthquakes);
         // outState.putParcelableArrayList("earthquakes", (ArrayList<? extends Parcelable>) earthquakes);
+        /*
+        this was failing because I believe earthquakes was in the classes' top level scope
+        but offcourse its no longer being used
+        perhaps what I should had done a while back was just do something like
+         public void update(Object _earthquakes) {
+            earthquakes = earthquakesViewModel.UI_earthquakes
+         }
+        */
+        ArrayList<Earthquake> earthquakes = earthquakesViewModel.getEarthquakes();
         for (int i = 0; i < earthquakes.size(); i++) {
             outState.putParcelable("earthquake" + i, earthquakes.get(i));
         }
@@ -826,6 +753,108 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         // should look better when the UI is finished; otherwise resort to the linear vertical layout
         //recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL));
         earthquakesRecyclerViewAdapter.notifyDataSetChanged(); // maybe this should've originally been outside & after the loop? Yeah, it doesn't matter but outside the loop would be more performant
+
+
+        Spinner spinner = (Spinner) findViewById(R.id.spinner);
+        // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(this,
+                R.array.magnitude_sort_array, android.R.layout.simple_spinner_item);
+// Specify the layout to use when the list of choices appears
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+// Apply the adapter to the spinner
+        spinner.setAdapter(spinnerAdapter);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
+                if (earthquakesRecyclerViewAdapter != null) {
+                    Log.d("MainActivity_onItemSelected",String.valueOf(earthquakes.size()));
+                    Collections.sort(earthquakes, new Comparator<Earthquake>() {
+                        @Override
+                        public int compare(Earthquake quakeA, Earthquake quakeB) {
+                            if (position >= 1) {
+                                    /*
+                                     [MVVM] will return to this later , I feel like this is such little logic that
+                                     it doesn't matter whether this lies in the view or the view model
+                                     but if I decide to move it to the view model then I think I'm going to need a
+                                     MonitoringStationsManager object to manage its own earthquakes array list
+                                     which [at the moment] is difficult to grasp
+                                    */
+                                //earthquakes = monitoringStationsManager.ascending();
+                                return Double.valueOf(quakeA.magnitude).compareTo(quakeB.magnitude);
+                            } else {
+                                return Double.valueOf(quakeB.magnitude).compareTo(quakeA.magnitude);
+                            }
+                        }
+                    });
+                    earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+                    System.out.println("WHY IS THIS RUNNING WHEN earthquakesRecyclerViewAdapter is null?");
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                // doesn't work as expected but oh well
+                Collections.sort(earthquakes, new Comparator<Earthquake>() {
+                    @Override
+                    public int compare(Earthquake quakeA, Earthquake quakeB) {
+                        return Double.valueOf(quakeA.magnitude).compareTo(quakeB.magnitude);
+                    }
+                });
+                if (earthquakesRecyclerViewAdapter != null) {
+                    earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+                }
+            }});
+
+        Button openDatePickerButton = (Button) findViewById(R.id.date_picker_button);
+        openDatePickerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DialogFragment datePicker = new DatePickerFragment();
+                datePicker.show(getSupportFragmentManager(), "date picker");
+            }
+        });
+
+       /*
+
+        EditText searchView = findViewById(R.id.searchView);
+        searchView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                /*
+                genuinely not sure how performant this is likely to be
+                but I'm also hoping that its able to find the recycler view items
+                which aren't technically in memroy
+                 */
+                /*
+                note: the emulator will not display characters typed using the real keyboard
+                [And might even crash the app :|] (possibly because I was stupidly typing when there was no earthquake data)
+                but will display the characters typed using the emulated keyboard
+                (hopefully this isn't a major issue)
+                 */
+                /*
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    //do something here
+                    System.out.println("typing");
+                    System.out.println("Search View: "+ searchView.getText().toString());
+                    System.out.println("Search View 2: "+ searchView.getText());
+                    for (int i = 0; i < earthquakes.size(); i++) {
+                        //char unicodeChar = (char)event.getUnicodeChar();
+                        System.out.println("Search View: "+ searchView.getText());
+                        if (earthquakes.get(i).location.toLowerCase().contains(searchView.getText())) {
+                            earthquakes.remove(i);
+                            earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+                        }
+                    }
+                    return true;
+                }
+                return false;
+
+            }
+                }
+            });
+    }
+                 */
+
     }
 
     @Override

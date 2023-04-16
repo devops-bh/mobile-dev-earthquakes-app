@@ -190,7 +190,6 @@ class AllEarthquakesViewModel extends Observable {
     public void getWeakestEarthquakes() {
         // todo: loop through each monitoring station's earthquakes & append the ones with the strong value to an array list
     }
-    public void get
 }
 
 // this is somewhat of a builder class

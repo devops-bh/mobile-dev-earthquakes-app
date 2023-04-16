@@ -16,25 +16,20 @@ package com.example.bryce_harper_s2221473;
 
 // import android.support.v7.app.AppCompatActivity;
 import android.app.DatePickerDialog;
-import android.app.ListActivity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Message;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -43,12 +38,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -56,17 +49,12 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 import java.io.StringReader;
-import java.sql.Timestamp;
 import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.LinkedList;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -162,6 +150,10 @@ class Earthquake implements Parcelable { // this may actually become an interfac
 
 interface Observer {
     public void update();
+    /* I was really hoping to have this method be optional , but I don't think thats possible
+    for now it doesn't matter, though I'd look into refactoring this for a long lived app */
+    public void update(Object state);
+    // this really should had been an abstract class?
 }
 
 class Observable {
@@ -175,23 +167,114 @@ class Observable {
     public void unregister(Observer observer) {
         observers.remove(observer);
     }
-    public void notifyAllObservers() {
+    /* Originally this wasn't supposed to have a parameter */
+    public void notifyAllObservers(Object stateIfAny) { // I don't think the earthquake repository as actually running this as I expected?
+        System.out.println(this);
         for (Observer observer : observers) {
-            observer.update();
+            /*
+            if (stateIfAny == null) {  // quick hack; see https://www.youtube.com/watch?v=vKVzRbsMnTQ
+                observer.update();
+            } else {
+            }*/
+            observer.update(stateIfAny);
         }
     }
+    /* alternatively could use optional parameters, but I'm not sure how I feel about passing the data this way
+    see: https://youtu.be/_BpmfnqjgzQ?t=2610
+    And technically I could introduce a strategy which decides whether data needs to be "pushed" (injected/passed) as an argument
+     */
+    /*
+    public void notifyAllObservers(Object state ) { // I don't think the earthquake repository as actually running this as I expected?
+        System.out.println(this);
+        for (Observer observer : observers) {
+            observer.update(state);
+        }
+    }*/
 }
 
-class AllEarthquakesViewModel extends Observable {
+// AllEarthquakesViewModel probably wasn't the correct name for this
+class AllEarthquakesViewModel extends Observable implements Observer {
+    EarthquakeRepository earthquakeRepository;
     MonitoringStationsManager monitoringStationsManager;
+    ArrayList<Earthquake> UI_earthquakes; // this is what the activity views are observing (there's probably a mutability debate to be had here somewhere but right now I don't care)
+    /* could implement filtering strategies */
+    Bundle savedInstanceState;
+    public AllEarthquakesViewModel() {
+        // maybe the EarthquakeReposiory or Earthquakes should be injected?
+        // NO! Because EarthquakeReposiory is also an observable :|
+        earthquakeRepository = new EarthquakeRepository();
+        earthquakeRepository.init();
+        earthquakeRepository.register(this);
+    }
+    /*
+    What happens when there are no earthquakes on the selected date?
+    I think the method deserves a unit test
+    */
+    public void getEarthquakesOnDate(String selectedDate) {
+        ArrayList<Earthquake> earthquakes = this.UI_earthquakes;
+        for (int i = 0; i < earthquakes.size(); i++) {
+            String quakeDate = earthquakes.get(i).pubDate.substring(4, 16);
+            if (quakeDate != selectedDate) {
+                earthquakes.remove(i);
+            }
+            System.out.println("QD: " + quakeDate);
+        }
+        this.UI_earthquakes = earthquakes; // why not just rename earthquakes to UI_earthquakes i.e. remove directly from UI_earthquakes? I don't know, but I suppose if error handling were to be used this imitates a "transaction" (Database term)
+        //this.notifyAllObservers(); /* I guess here, observer differs from pub sub, as they subscribe to topics, meaning some subs don't need to worry about their state being changed by others, with this current implementation, I'm slightly anticipating weird UI bugs when I implement the other Weakest/Strongest quake activity, we'll see*/
+        /* I suppose I could instead maybe do something such as observer.earthquakes = this.UI_earthquakes
+        but that wouldn't work for observers which don't have the earthquake property
+        So I guess I'd abstract it to something like observer.stateData = ?
+        */
+        this.notifyAllObservers(earthquakes);
+    }
     public void getStrongestEarthquakes() {
         // todo: loop through each monitoring station's earthquakes & append the ones with the strong value to an array list
     }
     public void getWeakestEarthquakes() {
         // todo: loop through each monitoring station's earthquakes & append the ones with the strong value to an array list
     }
-}
 
+    public void ascending() {
+
+    }
+
+    public void descending() {
+
+    }
+
+    @Override
+    public void update() {
+        /*
+         this is a hint of a poor design (tbh I did briefly try a UML diagram
+         Essentially, I didn't anticipate that I'd be passing state around like the other update method
+        */
+        Log.d("AllEarthquakesViewModel", "This should never be ran");
+    }
+
+    @Override
+    public void update(Object state) {
+        try {
+            this.monitoringStationsManager = earthquakeRepository.getEarthquakes();
+            this.UI_earthquakes = new ArrayList<Earthquake>(); /* TODO: explain why I'm doing this*/
+            for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
+                System.out.println( key );
+                ArrayList<Earthquake> quakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(key);
+                // why'd we not want to use the commented out line? Because then we might end up with duplicate data
+                this.UI_earthquakes.addAll(quakes);
+            }
+            this.notifyAllObservers(UI_earthquakes); // not sure how I feel about injecting the [state] data for the UI
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void setSavedInstanceState(Bundle savedInstanceState) {
+        this.savedInstanceState = savedInstanceState;
+    }
+    public Bundle getSavedInstanceState() {
+        return this.savedInstanceState;
+    }
+}
 // this is somewhat of a builder class
 class MonitoringStationsManager { // do I need to inherit from iterable to enable iteration?
     private Map<String, ArrayList<Earthquake>> monitoringStations;
@@ -245,7 +328,7 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
 }
 
 // I guess this is could be a singleton; I guess technically the MonitoringStationManager is a repository too?
-class EarthquakeRepository {
+class EarthquakeRepository extends Observable {
     private HandlerThread handlerThread;
     MonitoringStationsManager monitoringStationsManager; // this is really just a wrapper around ConcurrentHashMap because I didn't understand hash maps well enough
     public EarthquakeRepository() {
@@ -275,6 +358,25 @@ class EarthquakeRepository {
         return null;
     }
 
+
+    private void notifyObserversOnMainThread(Object response)
+    {
+        Handler uiThread = new Handler(Looper.getMainLooper());
+        Runnable runnable = () -> {
+            /*
+            // there was an error when trying to cast this to response, but I didn't bother looking into it
+            because at the moment I don't actually need the message, I'm essentially just
+            assuming there's data
+            String message = (String) response;
+            Log.d("EARTHQUAKE_REPOSITORY",message);
+             */
+            /*
+            It really doesn't make sense for this to have an argument
+            */
+            this.notifyAllObservers(null);
+        };
+        uiThread.post(runnable);
+    }
     // this could probably be renamed to something better
     private void _setMonitoringStations() {
         /*
@@ -287,6 +389,10 @@ class EarthquakeRepository {
         if this was a long lived app then I'd likely refactor this to make sense to others
          */
         HandlerThread handlerThread = new HandlerThread("MyHandlerThread");
+        /*
+        is this a memory leak since we aren't calling handlerThread.quit() ? e.g. there's a period of time the thread
+         is alive after we've finished using it but the garbage collector hasn't cleaned up the memory?
+         */
         handlerThread.start();
         Handler asyncHandler = new Handler(handlerThread.getLooper()) {
             // we don't need to send the message
@@ -294,25 +400,33 @@ class EarthquakeRepository {
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
                 Object response = msg.obj;
-
+                notifyObserversOnMainThread(response);
             }
         };
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run()
-            {
-                // your async code goes here.
-                Log.e("MyTg","In asynctaskrun");
+        Runnable runnable = () -> {
+            // your async code goes here.
+            Log.e("MyTg","In asynctaskrun");
 
-                // create message and pass any object here doesn't matter
-                // for a simple example I have used a simple string
-                Message message = new Message();
-                String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
-                String earthquakesXMLString = getEarthquakesAsStringAsync(urlSource);
-                parseEarthquakesString(earthquakesXMLString);
-                message.obj = monitoringStationsManager; // monitoringStationsManager.monitoringStations;
-               // asyncHandler.sendMessage(message);
-            }
+            // create message and pass any object here doesn't matter
+            // for a simple example I have used a simple string
+            Message message = new Message();
+            String urlSource = "http://quakes.bgs.ac.uk/feeds/WorldSeismology.xml";
+            String earthquakesXMLString = getEarthquakesAsStringAsync(urlSource);
+            parseEarthquakesString(earthquakesXMLString);
+            message.obj = monitoringStationsManager; // monitoringStationsManager.monitoringStations;
+            /*
+            [refactor]
+            I could create an enum which maps topics to integers e.g. 1 = "earthquake_data_recieved" (inspired by pub sub)
+            */
+            asyncHandler.sendMessage(message);
+            /*
+                Because this is triggering observer code which triggers UI code, Android complains
+                that the UI code is being run in this thread
+            */
+            //this.notifyAllObservers(); // so, similar to JS's arrow functions, the lecturer's method where they created a new Runnable object had a different scope/context than the outer class, hence
+            //         this.notifyAllObservers(); failed, whereas I assume lambas are bounded [don't know if thats the right word] to the correct [so the outer class's] scope
+            // asyncHandler.sendMessage(message);
+            // [refactor] should probably use message passing & have a somewhat pub sub topic mechanism in a more focused method ?
         };
         asyncHandler.post(runnable);
     }
@@ -434,7 +548,7 @@ class EarthquakeRepository {
 }
 
 // todo: convert the list portion of the app to a fragment
-public class MainActivity extends AppCompatActivity /* extends ListActivity */ implements OnClickListener, DatePickerDialog.OnDateSetListener
+public class MainActivity extends AppCompatActivity /* extends ListActivity */ implements OnClickListener, DatePickerDialog.OnDateSetListener, Observer
 {
     private TextView rawDataDisplay;
     private Button startButton;
@@ -450,10 +564,13 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
     ArrayList<String> listItems = new ArrayList<String>();
     EarthquakesRecyclerViewAdapter earthquakesRecyclerViewAdapter;
     ArrayList<Earthquake> earthquakes;
+    AllEarthquakesViewModel earthquakesViewModel;
     protected void onCreate(Bundle savedInstanceState)
     {
-        earthquakeRepository = new EarthquakeRepository();
-        earthquakeRepository.init();
+        /*
+        earthquakesViewModel = new AllEarthquakesViewModel();
+        earthquakesViewModel.register(this);
+         */
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         // Set up the raw links to the graphical components
@@ -464,6 +581,29 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         monitoringStationsManager = new MonitoringStationsManager();
         //adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, listItems);
         //setListAdapter(adapter);
+
+        Spinner spinner = (Spinner) findViewById(R.id.spinner);
+        /*
+        [Implementing the interaction between the View-Model & the View regarding Model View View-Model]
+
+        // This code is commented out, because
+        // technically I could instantiate the ViewModel
+        // assign the view model, but then I couldn't register the view model
+        // until this code had run, otherwise the observable triggers this main activity class's update method
+        // which results in earthquakesRecyclerViewAdapter being null which makes sense
+        // a simple workaround is to call the earthquakesViewModel.register(this);
+        // on a line after this code (& similar UI setup code has ran )
+        // but, I think when scrolling, its easy to not notice the earthquakesViewModel.register(this); line
+        // which I suspect will lead to confusion, therefor, (partially inspired by Jetpack Compose's recomposition)
+        // I am simply going to recreate the UI elements on each [observer] update which may not be the most
+        // performant solution (because Jetpack Compose has tricks where it only renders if there's a change etc)
+        // but hopefully its the most intuitive option , so essentially this class's update method becomes the onCreate method
+        // actually nevermind this wall of text, as I just realised that doing this will likely interfere (negatively)
+        // with the saving of tempoary state regarding the lifecycle behavior/s
+        // so ultimately, the most intuitive solution is just to initiate & register at the top
+        // but I'm unsure if this has anything to do with the EarthquakeRepository, as my original "hope" (premature optimization)
+        // was this would give time for the EarthquakeRepository's init method to run etc & thus the user would less likely
+        // notice the loading of the data
 
         earthquakes = new ArrayList<Earthquake>();
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
@@ -487,7 +627,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         // should look better when the UI is finished; otherwise resort to the linear vertical layout
         //recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL));
 
-        Spinner spinner = (Spinner) findViewById(R.id.spinner);
+         */
 // Create an ArrayAdapter using the string array and a default spinner layout
         ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(this,
                 R.array.magnitude_sort_array, android.R.layout.simple_spinner_item);
@@ -584,6 +724,10 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
             });
     }
                  */
+        earthquakesViewModel = new AllEarthquakesViewModel();
+        // maybe explain why savedInstanceState isn't being treated as an observable
+        earthquakesViewModel.setSavedInstanceState(savedInstanceState);
+        earthquakesViewModel.register(this);
     }
 
 
@@ -609,39 +753,15 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         // remember to convert the dates to UNIX timestamps
         // refactor this using a lambda for a more functional-esque approach
         String selectedDate = DateFormat.getDateInstance().format(calendar.getTime());
-
-        for (int i = 0; i < earthquakes.size(); i++) {
-            /* if I wanted to get a date range, I believe i could convert the
-            currentDate & the pubDate to a unix timestamp which makes
-            comparing them easier
-            */
-            /*
-            System.out.println("Dates: " + earthquakes.get(i).pubDate + " == " + selectedDate);
-
-            try {
-                DateFormat formatter = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
-                // you can change format of date
-                Date earthquakeDate = formatter.parse(earthquakes.get(i).pubDate);
-                Date userSelectedDate = formatter.parse(selectedDate);
-                Timestamp timeStampDateA = new Timestamp(earthquakeDate.getTime());
-                Timestamp timeStampDateB = new Timestamp(userSelectedDate.getTime());
-                System.out.println("TIMESTAMP: " + timeStampDateA + " vs " + timeStampDateB);
-            } catch (ParseException e) {
-                System.out.println("Exception :" + e);
-            }
-             */
-            String quakeDate = earthquakes.get(i).pubDate.substring(4, 16);
-            if (quakeDate != selectedDate) {
-                earthquakes.remove(i);
-                earthquakesRecyclerViewAdapter.notifyDataSetChanged();
-            }
-            System.out.println("QD: " + quakeDate);
-        }
+        // I don't like this naming but hopefully it becomes more obvious when this makes use of the view model
+        earthquakesViewModel.getEarthquakesOnDate(selectedDate);
+        //earthquakesRecyclerViewAdapter.notifyDataSetChanged(); // maybe this should've originally been outside & after the loop? Yeah, it doesn't matter but outside the loop would be more performant
     }
 
     public void onClick(View aview)
     {
         // startProgress();
+        /*
         try {
             // this was inspired by futures, or more specifically const data = await getData(); in JS, but... um...
             this.monitoringStationsManager = earthquakeRepository.getEarthquakes();
@@ -658,6 +778,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
             // display toast saying "data unavailible"
             throw new RuntimeException(e);
         }
+         */
     }
 
     public void startProgress()
@@ -665,6 +786,53 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         // Run network access on a separate thread;
         new Thread(new Task(urlSource)).start();
     } //
+
+    /*
+        // yeah, this code seems really awkward; I think I want to avoid having variant methods e.g. updateOnDateSelection etc
+        // and without an understanding of the ViewModel class, you likely wouldn't guess where update was called
+        [refactor] I should update the methods to the correct types rather than casting from Object to ArrayList<Earthquakes>
+        I briefly looked at method overloading etc, and I suppose I probably should had just used optional parameters,
+        but I'd rather just redesign & rewrite this after its been submitted when I have more time
+     */
+    @Override
+    public void update(Object _earthquakes) { // not sure about injecting the data but oh well
+        // https://www.youtube.com/watch?v=SWBN0y0lFNY
+        // [Optimization] Actually check if the UI state has changed before allocating UI elements on the heap (not sure if this would be done here or elsewhere)
+        /*
+
+        */
+     //   earthquakes = new ArrayList<Earthquake>();
+        ArrayList<Earthquake> earthquakes = (ArrayList<Earthquake>) _earthquakes;
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        // not a fan of the way I'm passing savedInstanceState but oh well
+        Bundle savedInstanceState = earthquakesViewModel.getSavedInstanceState();
+        if (savedInstanceState != null) {
+            //earthquakes = savedInstanceState.getParcelableArrayList("earthquakes");
+            System.out.println("NUM OF QUAKES: " + savedInstanceState.getString("earthquakes_count"));
+            int earthquakes_count = Integer.valueOf(savedInstanceState.getString("earthquakes_count"));
+            for (int i = 0; i < earthquakes_count; i++) {
+                //earthquakes.add(savedInstanceState.getParcelable("earthquake"+Integer.toString(i)));
+                Earthquake earthquake = savedInstanceState.getParcelable("earthquake"+Integer.toString(i));
+                System.out.println("EARTHQUAKE IN: "+ savedInstanceState.getParcelable("earthquake"+Integer.toString(i)));
+                earthquakes.add(earthquake);
+                // I mean, technically I could just store the state earthquakes as a giant XML string similar to what we originally done?
+                // maybe rebuild the monitoringStations too? which honestly should just be passed to the adapter ?
+            }
+            Log.d("Orientation", "loaded earthquakes from state");
+        }
+        earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
+        recyclerView.setAdapter(earthquakesRecyclerViewAdapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
+        // should look better when the UI is finished; otherwise resort to the linear vertical layout
+        //recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL));
+        earthquakesRecyclerViewAdapter.notifyDataSetChanged(); // maybe this should've originally been outside & after the loop? Yeah, it doesn't matter but outside the loop would be more performant
+    }
+
+    @Override
+    public void update() {
+        // there's a comment elsewhere explaining why this is empty
+        Log.d("MainActivity", "this should never be ran");
+    }
 
     // Need separate thread to access the internet resource over network
     // Other neater solutions should be adopted in later iterations.
@@ -758,12 +926,14 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                      */
 
                     // maybe replace linear layout manager with StaggeredGridLayoutManager
+                    /*
                     earthquakes = new ArrayList<Earthquake>();
                     for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
                         System.out.println( key );
                         ArrayList<Earthquake> quakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(key);
                         earthquakes.addAll(quakes);
                     }
+                     */
                     RecyclerView recyclerView = findViewById(R.id.recyclerView);
                     earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
                     recyclerView.setAdapter(earthquakesRecyclerViewAdapter);

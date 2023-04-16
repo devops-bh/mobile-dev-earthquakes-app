@@ -48,6 +48,7 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.net.URLConnection;
 
@@ -67,6 +68,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 // import gcu.mpd.bgsdatastarter.R;
@@ -158,7 +160,40 @@ class Earthquake implements Parcelable { // this may actually become an interfac
     };
 }
 
+interface Observer {
+    public void update();
+}
 
+class Observable {
+    ArrayList<Observer> observers;
+    public Observable() {
+        observers = new ArrayList<Observer>();
+    }
+    public void register(Observer observer) {
+        observers.add(observer);
+    }
+    public void unregister(Observer observer) {
+        observers.remove(observer);
+    }
+    public void notifyAllObservers() {
+        for (Observer observer : observers) {
+            observer.update();
+        }
+    }
+}
+
+class AllEarthquakesViewModel extends Observable {
+    MonitoringStationsManager monitoringStationsManager;
+    public void getStrongestEarthquakes() {
+        // todo: loop through each monitoring station's earthquakes & append the ones with the strong value to an array list
+    }
+    public void getWeakestEarthquakes() {
+        // todo: loop through each monitoring station's earthquakes & append the ones with the strong value to an array list
+    }
+    public void get
+}
+
+// this is somewhat of a builder class
 class MonitoringStationsManager { // do I need to inherit from iterable to enable iteration?
     private Map<String, ArrayList<Earthquake>> monitoringStations;
     public MonitoringStationsManager() { // [refactor] should probably use .ToLowerCase() or ignoreCase to prevent case sensitivity bugs
@@ -180,6 +215,16 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
         System.out.println();
     }
 
+    // the parameters for this could probably be better, this could also be more complex & thus flexible
+    // but there's not yet a need to remove earthquakes, asides from filtering on the UI layer
+    public void removeQuake(String location, int index) {
+        // todo
+    }
+    public void removeMonitoringStation(String location) {
+        // todo
+    }
+
+    // may rename to getMonitoringStationQuakes
     public ArrayList getAllEarthquakesFromMonitoringStation(String monitoringStation) {
         if (this.monitoringStations.containsKey(monitoringStation)) {
             System.out.println("LEN: "+this.monitoringStations.get(monitoringStation));
@@ -191,6 +236,9 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
 
     public ArrayList<Earthquake> getAllEarthquakesByIndex(int index) {
         return this.monitoringStations.get(index);
+    }
+    public Set getMonitoringStationNames() {
+        return this.monitoringStations.keySet();
     }
     public Map<String, ArrayList<Earthquake>> getMonitoringStations() {
         return this.monitoringStations;
@@ -367,6 +415,7 @@ class EarthquakeRepository {
                     if (xpp.getName().equalsIgnoreCase("item")) {
                         //alist.add(widget);
                         monitoringStationsManager.add(widget.location, widget);
+                        // monitoringStationsManager.notify();
                         System.out.println("Adding earthquake: " + widget.location);
                     }
                 }
@@ -455,6 +504,14 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                             @Override
                             public int compare(Earthquake quakeA, Earthquake quakeB) {
                                 if (position >= 1) {
+                                    /*
+                                     [MVVM] will return to this later , I feel like this is such little logic that
+                                     it doesn't matter whether this lies in the view or the view model
+                                     but if I decide to move it to the view model then I think I'm going to need a
+                                     MonitoringStationsManager object to manage its own earthquakes array list
+                                     which [at the moment] is difficult to grasp
+                                    */
+                                    //earthquakes = monitoringStationsManager.ascending();
                                     return Double.valueOf(quakeA.magnitude).compareTo(quakeB.magnitude);
                                 } else {
                                     return Double.valueOf(quakeB.magnitude).compareTo(quakeA.magnitude);
@@ -596,7 +653,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                 earthquakes.addAll(quakes);
             }
             earthquakesRecyclerViewAdapter.notifyDataSetChanged();
-
+            // locationsSpinnerAdapter.notifyDataSetChanged();
         } catch (Exception e) {
             Log.e("EarthquakeRepository", e.getLocalizedMessage());
             // display toast saying "data unavailible"

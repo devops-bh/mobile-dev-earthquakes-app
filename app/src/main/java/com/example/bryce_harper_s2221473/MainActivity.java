@@ -151,10 +151,6 @@ class Earthquake implements Parcelable { // this may actually become an interfac
 
 interface Observer {
     public void update();
-    /* I was really hoping to have this method be optional , but I don't think thats possible
-    for now it doesn't matter, though I'd look into refactoring this for a long lived app */
-    public void update(Object state);
-    // this really should had been an abstract class?
 }
 
 class Observable {
@@ -169,7 +165,7 @@ class Observable {
         observers.remove(observer);
     }
     /* Originally this wasn't supposed to have a parameter */
-    public void notifyAllObservers(Object stateIfAny) { // I don't think the earthquake repository as actually running this as I expected?
+    public void notifyAllObservers() { // I don't think the earthquake repository as actually running this as I expected?
         System.out.println(this);
         for (Observer observer : observers) {
             /*
@@ -177,7 +173,7 @@ class Observable {
                 observer.update();
             } else {
             }*/
-            observer.update(stateIfAny);
+            observer.update();
         }
     }
     /* alternatively could use optional parameters, but I'm not sure how I feel about passing the data this way
@@ -220,13 +216,8 @@ class AllEarthquakesViewModel extends Observable implements Observer {
             }
             System.out.println("QD: " + quakeDate);
         }
-        this.UI_earthquakes = earthquakes; // why not just rename earthquakes to UI_earthquakes i.e. remove directly from UI_earthquakes? I don't know, but I suppose if error handling were to be used this imitates a "transaction" (Database term)
-        //this.notifyAllObservers(); /* I guess here, observer differs from pub sub, as they subscribe to topics, meaning some subs don't need to worry about their state being changed by others, with this current implementation, I'm slightly anticipating weird UI bugs when I implement the other Weakest/Strongest quake activity, we'll see*/
-        /* I suppose I could instead maybe do something such as observer.earthquakes = this.UI_earthquakes
-        but that wouldn't work for observers which don't have the earthquake property
-        So I guess I'd abstract it to something like observer.stateData = ?
-        */
-        this.notifyAllObservers(earthquakes);
+        // observers.notifyAllObservers(); // I think I've confused myself; I believe it should had been this.notifyAllObservers all along
+        this.notifyAllObservers();
     }
     public void getStrongestEarthquakes() {
         // todo: loop through each monitoring station's earthquakes & append the ones with the strong value to an array list
@@ -244,6 +235,18 @@ class AllEarthquakesViewModel extends Observable implements Observer {
     Also I sort of want to call this something like getEarthquakesForUI
     */
     public ArrayList<Earthquake> getEarthquakes() {
+        try {
+            this.monitoringStationsManager = earthquakeRepository.getEarthquakes();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        this.UI_earthquakes = new ArrayList<Earthquake>(); /* TODO: explain why I'm doing this*/
+        for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
+            System.out.println( key );
+            ArrayList<Earthquake> quakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(key);
+            // why'd we not want to use the commented out line? Because then we might end up with duplicate data
+            this.UI_earthquakes.addAll(quakes);
+        }
         return this.UI_earthquakes;
     }
 
@@ -254,28 +257,10 @@ class AllEarthquakesViewModel extends Observable implements Observer {
     public void descending() {
 
     }
-
     @Override
     public void update() {
-        /*
-         this is a hint of a poor design (tbh I did briefly try a UML diagram
-         Essentially, I didn't anticipate that I'd be passing state around like the other update method
-        */
-        Log.d("AllEarthquakesViewModel", "This should never be ran");
-    }
-
-    @Override
-    public void update(Object state) {
         try {
-            this.monitoringStationsManager = earthquakeRepository.getEarthquakes();
-            this.UI_earthquakes = new ArrayList<Earthquake>(); /* TODO: explain why I'm doing this*/
-            for ( String key : monitoringStationsManager.getMonitoringStations().keySet() ) {
-                System.out.println( key );
-                ArrayList<Earthquake> quakes = monitoringStationsManager.getAllEarthquakesFromMonitoringStation(key);
-                // why'd we not want to use the commented out line? Because then we might end up with duplicate data
-                this.UI_earthquakes.addAll(quakes);
-            }
-            this.notifyAllObservers(UI_earthquakes); // not sure how I feel about injecting the [state] data for the UI
+            this.notifyAllObservers();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -308,6 +293,7 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
         monitoringStations.put(monitoringStation, current);
         //this.monitoringStations.putIfAbsent(monitoringStation, current);
         System.out.println();
+        // update / notify observers?
     }
 
     // the parameters for this could probably be better, this could also be more complex & thus flexible
@@ -386,7 +372,7 @@ class EarthquakeRepository extends Observable {
             /*
             It really doesn't make sense for this to have an argument
             */
-            this.notifyAllObservers(null);
+            this.notifyAllObservers();
         };
         uiThread.post(runnable);
     }
@@ -687,6 +673,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
 
     public void onClick(View aview)
     {
+        this.update(); // forcing the update for quickness, really the observable should be triggering this
         // startProgress();
         /*
         try {
@@ -706,30 +693,6 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
             throw new RuntimeException(e);
         }
          */
-    }
-
-    public void startProgress()
-    {
-        // Run network access on a separate thread;
-        new Thread(new Task(urlSource)).start();
-    } //
-
-    /*
-        // yeah, this code seems really awkward; I think I want to avoid having variant methods e.g. updateOnDateSelection etc
-        // and without an understanding of the ViewModel class, you likely wouldn't guess where update was called
-        [refactor] I should update the methods to the correct types rather than casting from Object to ArrayList<Earthquakes>
-        I briefly looked at method overloading etc, and I suppose I probably should had just used optional parameters,
-        but I'd rather just redesign & rewrite this after its been submitted when I have more time
-     */
-    @Override
-    public void update(Object _earthquakes) { // not sure about injecting the data but oh well
-        // https://www.youtube.com/watch?v=SWBN0y0lFNY
-        // [Optimization] Actually check if the UI state has changed before allocating UI elements on the heap (not sure if this would be done here or elsewhere)
-        /*
-
-        */
-     //   earthquakes = new ArrayList<Earthquake>();
-        ArrayList<Earthquake> earthquakes = (ArrayList<Earthquake>) _earthquakes;
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         // not a fan of the way I'm passing savedInstanceState but oh well
         Bundle savedInstanceState = earthquakesViewModel.getSavedInstanceState();
@@ -747,6 +710,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
             }
             Log.d("Orientation", "loaded earthquakes from state");
         }
+
         earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
         recyclerView.setAdapter(earthquakesRecyclerViewAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(MainActivity.this));
@@ -854,13 +818,27 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
             });
     }
                  */
-
     }
 
-    @Override
+    public void startProgress()
+    {
+        // Run network access on a separate thread;
+        new Thread(new Task(urlSource)).start();
+    } //
+
+    /*
+        // yeah, this code seems really awkward; I think I want to avoid having variant methods e.g. updateOnDateSelection etc
+        // and without an understanding of the ViewModel class, you likely wouldn't guess where update was called
+        [refactor] I should update the methods to the correct types rather than casting from Object to ArrayList<Earthquakes>
+        I briefly looked at method overloading etc, and I suppose I probably should had just used optional parameters,
+        but I'd rather just redesign & rewrite this after its been submitted when I have more time
+     */
+
     public void update() {
-        // there's a comment elsewhere explaining why this is empty
-        Log.d("MainActivity", "this should never be ran");
+        this.earthquakes = earthquakesViewModel.getEarthquakes();
+        if (earthquakesRecyclerViewAdapter != null) {
+            earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+        }
     }
 
     // Need separate thread to access the internet resource over network

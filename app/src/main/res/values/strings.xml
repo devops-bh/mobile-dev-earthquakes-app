@@ -93,6 +93,8 @@
         <item>Highest magnitude to lowest</item>
         <item>Lowwst magnitude to highest</item>
     </string-array>
+    <string-array name="stations_placeholder">
+    </string-array>
     <string name="title_activity_maps">MapsActivity</string>
     <string name="title_activity_scrolling">IGNORE</string>
     <string name="action_settings">Settings</string>

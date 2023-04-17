@@ -16,6 +16,9 @@ package com.example.bryce_harper_s2221473;
 
 // import android.support.v7.app.AppCompatActivity;
 import android.app.DatePickerDialog;
+import android.app.job.JobParameters;
+import android.app.job.JobService;
+import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -24,12 +27,14 @@ import android.os.Message;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -219,6 +224,12 @@ class AllEarthquakesViewModel extends Observable implements Observer {
         // observers.notifyAllObservers(); // I think I've confused myself; I believe it should had been this.notifyAllObservers all along
         this.notifyAllObservers();
     }
+    public Set getMonitoringStationNames() {
+        return this.monitoringStationsManager.getMonitoringStationNames();
+    }
+    public ArrayList<String> getMonitoringStationNamesAsArrayList() {
+        return this.monitoringStationsManager.getMonitoringStationNamesAsArrayList();
+    }
     public void getStrongestEarthquakes() {
         // todo: loop through each monitoring station's earthquakes & append the ones with the strong value to an array list
     }
@@ -321,10 +332,19 @@ class MonitoringStationsManager { // do I need to inherit from iterable to enabl
     public Set getMonitoringStationNames() {
         return this.monitoringStations.keySet();
     }
+    public ArrayList<String> getMonitoringStationNamesAsArrayList() {
+        ArrayList<String> temp = new ArrayList<String>();
+        for (String key : monitoringStations.keySet()) {
+            temp.add(key);
+        }
+        return temp;
+    }
     public Map<String, ArrayList<Earthquake>> getMonitoringStations() {
         return this.monitoringStations;
     }
 }
+
+// will be run in the background but controlled by EarthquakeRepository
 
 // I guess this is could be a singleton; I guess technically the MonitoringStationManager is a repository too?
 class EarthquakeRepository extends Observable {
@@ -375,6 +395,15 @@ class EarthquakeRepository extends Observable {
             this.notifyAllObservers();
         };
         uiThread.post(runnable);
+
+        /*
+        Handler handler = new Handler();
+        Runnable r = () -> {
+            this._setMonitoringStations();
+            Log.d("EarthquakeRepository_update", "update");
+        };
+        handler.postDelayed(r, 2 * 60 * 100);
+        */
     }
     // this could probably be renamed to something better
     private void _setMonitoringStations() {
@@ -565,6 +594,9 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
     // no longer being used
     ArrayList<Earthquake> earthquakes;
     AllEarthquakesViewModel earthquakesViewModel;
+    ArrayList<String> stationsSpinnerList;
+    ArrayAdapter stationsSpinnerAdapter;
+    ArrayList<Character> typedChars;
     protected void onCreate(Bundle savedInstanceState)
     {
         /*
@@ -631,6 +663,7 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         //recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL));
 
          */
+
     }
 
 
@@ -718,6 +751,27 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
         //recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL));
         earthquakesRecyclerViewAdapter.notifyDataSetChanged(); // maybe this should've originally been outside & after the loop? Yeah, it doesn't matter but outside the loop would be more performant
 
+        /*
+        Spinner stationsSpinner = (Spinner) findViewById(R.id.stations_spinner);
+        // Create an ArrayAdapter using the string array and a default spinner layout
+// Apply the adapter to the spinner
+        //stationsSpinnerList = monitoringStationsManager.getMonitoringStationNamesAsArrayList();
+        stationsSpinnerList = new ArrayList<>();
+        stationsSpinnerList.add("ugh");
+        stationsSpinnerAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item, stationsSpinnerList);
+        stationsSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        stationsSpinner.setAdapter(stationsSpinnerAdapter);
+        stationsSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                System.out.println("T");
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+         */
 
         Spinner spinner = (Spinner) findViewById(R.id.spinner);
         // Create an ArrayAdapter using the string array and a default spinner layout
@@ -778,7 +832,6 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
             }
         });
 
-       /*
 
         EditText searchView = findViewById(R.id.searchView);
         searchView.setOnKeyListener(new View.OnKeyListener() {
@@ -795,30 +848,29 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
                 but will display the characters typed using the emulated keyboard
                 (hopefully this isn't a major issue)
                  */
-                /*
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
                     //do something here
-                    System.out.println("typing");
                     System.out.println("Search View: "+ searchView.getText().toString());
                     System.out.println("Search View 2: "+ searchView.getText());
                     for (int i = 0; i < earthquakes.size(); i++) {
                         //char unicodeChar = (char)event.getUnicodeChar();
-                        System.out.println("Search View: "+ searchView.getText());
-                        if (earthquakes.get(i).location.toLowerCase().contains(searchView.getText())) {
+                        //if (!earthquakes.get(i).location.toString().toLowerCase().contains(searchView.getText().toString().toLowerCase())) {
+                        if (earthquakes.get(i).location.toLowerCase() != searchView.getText().toString().toLowerCase()) {
                             earthquakes.remove(i);
                             earthquakesRecyclerViewAdapter.notifyDataSetChanged();
+                            System.out.println("typing");
+                            System.out.println("Search View: "+ searchView.getText());
+                            return true;
+                        } else {
+                            System.out.println("MATCHED: " + searchView.getText() + " " + earthquakes.get(i).location);
                         }
                     }
-                    return true;
                 }
                 return false;
 
             }
-                }
             });
-    }
-                 */
-    }
+        }
 
     public void startProgress()
     {
@@ -836,9 +888,26 @@ public class MainActivity extends AppCompatActivity /* extends ListActivity */ i
 
     public void update() {
         this.earthquakes = earthquakesViewModel.getEarthquakes();
+        // this.earthquakesViewModel = earthquakesViewModel.getMonitoringStations();
         if (earthquakesRecyclerViewAdapter != null) {
             earthquakesRecyclerViewAdapter.notifyDataSetChanged();
         }
+        /*
+        if (stationsSpinnerAdapter != null) {
+            Spinner stationsSpinner = (Spinner) findViewById(R.id.stations_spinner);
+            // Create an ArrayAdapter using the string array and a default spinner layout
+// Apply the adapter to the spinner
+            //stationsSpinnerList = monitoringStationsManager.getMonitoringStationNamesAsArrayList();
+            stationsSpinnerList = new ArrayList<>();
+            stationsSpinnerList.add("ugh");
+            stationsSpinnerAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item, stationsSpinnerList);
+            stationsSpinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            stationsSpinner.setAdapter(stationsSpinnerAdapter);
+            //stationsSpinnerAdapter.notifyDataSetChanged();
+        }
+
+         */
+
     }
 
     // Need separate thread to access the internet resource over network

@@ -16,6 +16,8 @@ import com.google.android.gms.maps.model.Marker;
 import org.w3c.dom.Text;
 
 public class EarthquakeInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
+    // Name                 Bryce Harper
+// Student ID           S2221473
     private final View mWindow;
     private Context mContext;
 

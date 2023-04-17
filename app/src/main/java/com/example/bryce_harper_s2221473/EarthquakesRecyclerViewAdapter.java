@@ -13,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 
 public class EarthquakesRecyclerViewAdapter extends RecyclerView.Adapter<EarthquakesRecyclerViewAdapter.EarthquakesRecyclerViewHolder> {
+    // Name                 Bryce Harper
+// Student ID           S2221473
     Context context;
     ArrayList<Earthquake> earthquakes;
     int position;

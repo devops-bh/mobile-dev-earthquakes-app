@@ -55,15 +55,20 @@ import java.util.concurrent.ConcurrentHashMap;
 /*
 Quick notes:
 I tried implementing model view view-model without Jetpack Compose's ViewModel class; though I'd definitely improve this in the future
+The code for retaining the state between life cycle destructions is there and worked with
+the original implementation of MVVM but I couldn't get it working with this variant
 Monitoring station is synomynous with location
 There could be a concrete monitoring station model but I didn't see the need for an explicit model
 The monitoring stations manager class is really just a wrapper around a concurrent hashmap
 I anticipated displaying earthquakes based on location but ran out of time
 There's methods like "getEarthquakes" which really return monitoring stations (which contain earthquakes) - these could prob be named better
 Sorry I put little effort into the UI
+
 */
 
 class Earthquake implements Parcelable {
+    // Name                 Bryce Harper
+    // Student ID           S2221473
     public String title;
     public String description;
     public String link ;
@@ -123,11 +128,15 @@ class Earthquake implements Parcelable {
 }
 
 interface Observer {
+    // Name                 Bryce Harper
+// Student ID           S2221473
     public void update();
 }
 
 class Observable {
     ArrayList<Observer> observers;
+    // Name                 Bryce Harper
+// Student ID           S2221473
     public Observable() {
         observers = new ArrayList<Observer>();
     }
@@ -146,6 +155,8 @@ class Observable {
 }
 
 class AllEarthquakesViewModel extends Observable implements Observer {
+    // Name                 Bryce Harper
+// Student ID           S2221473
     EarthquakeRepository earthquakeRepository;
     MonitoringStationsManager monitoringStationsManager;
     ArrayList<Earthquake> UI_earthquakes;
@@ -212,13 +223,27 @@ class AllEarthquakesViewModel extends Observable implements Observer {
 
     public void setSavedInstanceState(Bundle savedInstanceState) {
         this.savedInstanceState = savedInstanceState;
+        ArrayList<Earthquake> tempQuakes = new ArrayList<>();
+        if (savedInstanceState != null) {
+            int earthquakes_count = Integer.valueOf(savedInstanceState.getString("earthquakes_count"));
+            for (int i = 0; i < earthquakes_count; i++) {
+                Earthquake earthquake = savedInstanceState.getParcelable("earthquake" + Integer.toString(i));
+                tempQuakes.add(earthquake);
+            }
+            this.UI_earthquakes = tempQuakes;
+            this.notifyAllObservers();
+            Log.d("Orientation", "loaded earthquakes from state");
+        }
     }
     public Bundle getSavedInstanceState() {
+
         return this.savedInstanceState;
     }
 }
 // this is somewhat of a builder class
 class MonitoringStationsManager {
+    // Name                 Bryce Harper
+// Student ID           S2221473
     private Map<String, ArrayList<Earthquake>> monitoringStations;
     public MonitoringStationsManager() {
         this.monitoringStations = new ConcurrentHashMap<String, ArrayList<Earthquake>>();
@@ -273,6 +298,8 @@ class MonitoringStationsManager {
 }
 
 class EarthquakeRepository extends Observable {
+    // Name                 Bryce Harper
+// Student ID           S2221473
     private HandlerThread handlerThread;
     MonitoringStationsManager monitoringStationsManager;
     public EarthquakeRepository() {
@@ -419,6 +446,8 @@ class EarthquakeRepository extends Observable {
 }
 public class MainActivity extends AppCompatActivity  implements OnClickListener, DatePickerDialog.OnDateSetListener, Observer
 {
+    // Name                 Bryce Harper
+// Student ID           S2221473
     private TextView rawDataDisplay;
     private Button startButton;
     private String result = "";
@@ -436,17 +465,21 @@ public class MainActivity extends AppCompatActivity  implements OnClickListener,
     ArrayList<String> stationsSpinnerList;
     ArrayAdapter stationsSpinnerAdapter;
     ArrayList<Character> typedChars;
+    Bundle savedInstanceState;
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        // Set up the raw links to the graphical components
         rawDataDisplay = (TextView)findViewById(R.id.rawDataDisplay);
         startButton = (Button)findViewById(R.id.startButton);
         startButton.setOnClickListener(this);
         earthquakesViewModel = new AllEarthquakesViewModel();
-        earthquakesViewModel.setSavedInstanceState(savedInstanceState);
+        ArrayList<Earthquake> tempQuakes = new ArrayList<Earthquake>();
         earthquakesViewModel.register(this);
+        if (savedInstanceState != null) {
+            //earthquakesViewModel.setSavedInstanceState(savedInstanceState);
+            this.savedInstanceState = savedInstanceState;
+        }
     }
 
 
@@ -454,7 +487,6 @@ public class MainActivity extends AppCompatActivity  implements OnClickListener,
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         if (outState == null) return;
-        ArrayList<Earthquake> earthquakes = earthquakesViewModel.getEarthquakes();
         for (int i = 0; i < earthquakes.size(); i++) {
             outState.putParcelable("earthquake" + i, earthquakes.get(i));
         }
@@ -474,15 +506,6 @@ public class MainActivity extends AppCompatActivity  implements OnClickListener,
     public void onClick(View aview) {
         this.update();
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
-        Bundle savedInstanceState = earthquakesViewModel.getSavedInstanceState();
-        if (savedInstanceState != null) {
-            int earthquakes_count = Integer.valueOf(savedInstanceState.getString("earthquakes_count"));
-            for (int i = 0; i < earthquakes_count; i++) {
-                Earthquake earthquake = savedInstanceState.getParcelable("earthquake" + Integer.toString(i));
-                earthquakes.add(earthquake);
-            }
-            Log.d("Orientation", "loaded earthquakes from state");
-        }
 
         earthquakesRecyclerViewAdapter = new EarthquakesRecyclerViewAdapter(MainActivity.this, earthquakes);
         recyclerView.setAdapter(earthquakesRecyclerViewAdapter);
@@ -539,7 +562,16 @@ public class MainActivity extends AppCompatActivity  implements OnClickListener,
     }
 
         public void update () {
-            this.earthquakes = earthquakesViewModel.getEarthquakes();
+            if (this.savedInstanceState == null) {
+                this.earthquakes = earthquakesViewModel.getEarthquakes();
+            } else {
+                this.earthquakes = new ArrayList<>();
+                int earthquakes_count = Integer.valueOf(savedInstanceState.getString("earthquakes_count"));
+                for (int i = 0; i < earthquakes_count; i++) {
+                    Earthquake earthquake = savedInstanceState.getParcelable("earthquake" + Integer.toString(i));
+                    this.earthquakes.add(earthquake);
+                }
+            }
             if (earthquakesRecyclerViewAdapter != null) {
                 earthquakesRecyclerViewAdapter.notifyDataSetChanged();
             }

@@ -1,30 +1,19 @@
-<!--  MPD XML Starter code Semester B Session 2018 2019  -->
+<!--  MPD XML Starter code Semester B Session 2018 2019
+  // Name                 Bryce Harper
+// Student ID           S2221473
+
+  -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
     <TextView android:id="@+id/salutation" android:layout_width="fill_parent" android:layout_height="wrap_content" android:textSize="20sp" android:text="Welcome to Mobile Platform Development"/>
     <Button android:id="@+id/startButton" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Press to get data"/>
     <TextView android:id="@+id/acknowledgement" android:layout_width="fill_parent" android:layout_height="wrap_content" android:textSize="20sp" android:text="Contains British Geological Survey materials ©NERC 2019"/>
-    <!-- There may be a search view but I'm more familliar with EditText -->
 
-    <EditText
-        android:id="@+id/searchView"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content" />
-
-    <!--
-    <Spinner
-        android:id="@+id/stations_spinner"
-        android:layout_width="fill_parent"
-        android:layout_height="64px"
-        android:background="@color/purple_500"
-        />
-        -->
 
     <Button
         android:id="@+id/date_picker_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Date" />
-
     <Spinner
         android:id="@+id/spinner"
         android:layout_width="fill_parent"
@@ -32,15 +21,6 @@
         android:background="@color/purple_200"
         android:entries="@array/magnitude_sort_array" />
 
-    <!--
-    <ListView
-        android:id="@android:id/list"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:drawSelectorOnTop="false"
-        android:clickable="true"
-        />
-        -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"

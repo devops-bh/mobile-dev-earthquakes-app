@@ -10,6 +10,8 @@ import androidx.fragment.app.DialogFragment;
 import java.util.Calendar;
 
 public class DatePickerFragment extends DialogFragment  {
+    // Name                 Bryce Harper
+// Student ID           S2221473
     Calendar calendar = Calendar.getInstance();
     int year = calendar.get(Calendar.YEAR);
     int month = calendar.get(Calendar.MONTH);
